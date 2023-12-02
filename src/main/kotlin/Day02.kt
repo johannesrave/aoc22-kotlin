@@ -5,8 +5,8 @@ fun main() {
     val durationA = measureTimeMillis { println("Solution for Day02a: ${Day02a("input/02.txt").solve()}") }
     println("solution took $durationA milliseconds")
 
-//    val durationB = measureTimeMillis { println("Solution for Day02b: ${Day02b("input/02.txt").solve()}") }
-//    println("solution took $durationB milliseconds")
+    val durationB = measureTimeMillis { println("Solution for Day02b: ${Day02b("input/02.txt").solve()}") }
+    println("solution took $durationB milliseconds")
 }
 
 class Day02a(inputFileName: String) : Day(inputFileName) {
@@ -28,4 +28,20 @@ class Day02a(inputFileName: String) : Day(inputFileName) {
         }
 
     private fun getCubeColorPattern(color: String) = """(\d+) $color""".toRegex()
+}
+
+
+class Day02b(inputFileName: String) : Day(inputFileName) {
+    private val cubesPerColor = mapOf("red" to 12, "green" to 13, "blue" to 14)
+
+    fun solve(): Int = input.split("\n")
+        .sumOf { it ->
+            val productOfMaxCubesPerColor = cubesPerColor.keys.map { color ->
+                val allHandsInGame = getColorRegex(color).findAll(it)
+                allHandsInGame.maxOf { it.groupValues[1].toInt() }
+            }.fold(1) { product, maxCubesPerColor -> product * maxCubesPerColor }
+            return@sumOf productOfMaxCubesPerColor
+        }
+
+    private fun getColorRegex(color: String) = """(\d+) $color""".toRegex()
 }

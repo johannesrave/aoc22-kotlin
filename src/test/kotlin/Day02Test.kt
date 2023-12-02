@@ -8,3 +8,11 @@ class Day02aTest {
         assertEquals(8, Day02a("input/02.test.txt").solve())
     }
 }
+
+class Day02bTest {
+
+    @Test
+    fun solve() {
+        assertEquals(2286, Day02b("input/02.test.txt").solve())
+    }
+}
