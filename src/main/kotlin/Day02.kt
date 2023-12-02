@@ -22,7 +22,7 @@ class Day02a(inputFileName: String) : Day(inputFileName) {
             gameId
         }
 
-    enum class Color(color: String, private val maxCubes: Int) {
+    enum class Color(color: String, private val maxAmount: Int) {
         R("red", 12), G("green", 13), B("blue", 14);
 
         private val colorOccurrenceRegex = """(\d+) $color""".toRegex()
@@ -30,7 +30,7 @@ class Day02a(inputFileName: String) : Day(inputFileName) {
         fun allOccurrencesArePossible(round: String) = colorOccurrenceRegex
             .findAll(round)
             .map { match -> match.groupValues[1].toInt() }
-            .all { amountOfCubes -> (amountOfCubes <= maxCubes) }
+            .all { amountOfCubes -> (amountOfCubes <= maxAmount) }
     }
 }
 
@@ -38,9 +38,9 @@ class Day02a(inputFileName: String) : Day(inputFileName) {
 class Day02b(inputFileName: String) : Day(inputFileName) {
     fun solve(): Int = input
         .split("\n")
-        .sumOf { round ->
+        .sumOf { gameRound ->
             return@sumOf Color.entries
-                .map { color -> color.findMaxOccurrenceInRound(round) }
+                .map { color -> color.findMaxOccurrenceInRound(gameRound) }
                 .reduce { product, maxCubesPerColor -> product * maxCubesPerColor }
         }
 
