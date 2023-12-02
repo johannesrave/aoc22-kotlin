@@ -42,3 +42,13 @@ bin/
 .DS_Store
 # Project exclude paths
 /gradle/
+/.idea/.gitignore
+/.idea/.name
+/.idea/codeStyles/codeStyleConfig.xml
+/.idea/gradle.xml
+/.idea/kotlinc.xml
+/.idea/misc.xml
+/.idea/codeStyles/Project.xml
+/.idea/inspectionProfiles/Project_Default.xml
+/.idea/uiDesigner.xml
+/.idea/vcs.xml
