@@ -65,22 +65,18 @@ class Day03b(inputFileName: String) : Day(inputFileName) {
         val partNumbers = parsePartNumbers(input)
 
         return gearCandidates
-            .map { (x, y) ->
-                val neighbouringPartNumbers = mutableSetOf<PartNumber>()
-                (y - 1..y + 1).forEach { _y ->
-                    (x - 1..x + 1).forEach { _x ->
-                        partNumbers[_y][_x]?.let { neighbouringPartNumbers.add(it) }
-                    }
-                }
-                neighbouringPartNumbers
-            }
+            .map { pos -> adjacentPartNumbers(pos, partNumbers) }
             .filter { partNumbers_ -> partNumbers_.size == 2 }
-            .sumOf { partNumbers_ ->
-                partNumbers_
-                    .map { it.number }
-                    .reduce { acc, number -> acc * number }
-                    .also { println(it) }
+            .sumOf { partNumbers_ -> partNumbers_.fold(1 as Int) { acc, number -> acc * number.number } }
+    }
+
+    private fun adjacentPartNumbers(pos: Point2D, partNumbers: Array<Array<PartNumber?>>): Set<PartNumber> {
+        val (x, y) = pos
+        return (y - 1..y + 1).flatMap { _y ->
+            (x - 1..x + 1).mapNotNull { _x ->
+                partNumbers[_y][_x]
             }
+        }.toSet()
     }
 
     private fun parseGearCandidates(input: String): List<Point2D> = input
