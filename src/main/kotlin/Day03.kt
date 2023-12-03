@@ -10,61 +10,53 @@ fun main() {
 }
 
 class Day03a(inputFileName: String) : Day(inputFileName) {
-    private val symbolRegex = """[^0-9.]""".toRegex()
-    private val numberRegex = """[0-9]+""".toRegex()
 
     fun solve(): Int {
-        val contactZones = getContactZones(parseSymbols(input))
-        val numbers = parseNumbers(input)
+        val symbolPositions = parseSymbols(input)
+        val partNumbers = parsePartNumbers(input)
 
-        val numbersInContact = emptySet<Triple<Int, IntRange, Int>>().toMutableSet()
-        contactZones.forEach { (ys, xs) ->
-            ys.forEach { y ->
-                xs.forEach { zoneXRange ->
-                    numbers[y]?.forEach { (numberXRange, number) ->
-                        if (zoneXRange.intersect(numberXRange).isNotEmpty()) {
-                            numbersInContact.add(Triple(y, numberXRange, number))
-                        }
-                    }
+        return symbolPositions
+            .flatMap { pos -> adjacentPartNumbers(pos, partNumbers) }
+            .toSet()
+            .sumOf { it.number }
+    }
+
+    private fun adjacentPartNumbers(pos: Point2D, partNumbers: Array<Array<PartNumber?>>): Set<PartNumber> {
+        val (x, y) = pos
+        return (y - 1..y + 1).flatMap { _y ->
+            (x - 1..x + 1).mapNotNull { _x ->
+                partNumbers[_y][_x]
+            }
+        }.toSet()
+    }
+
+    private fun parseSymbols(input: String): List<Point2D> = input
+        .split("\n")
+        .flatMapIndexed { y, row ->
+            """[^0-9.]""".toRegex()
+                .findAll(row)
+                .map { result -> Point2D(result.range.first, y) }
+        }
+
+    private fun parsePartNumbers(input: String): Array<Array<PartNumber?>> {
+        val rows = input.split("\n")
+        val board = Array(rows.size) { Array<PartNumber?>(rows.first().length) { null } }
+
+        rows.forEachIndexed { y, row ->
+            "\\d+".toRegex()
+                .findAll(row)
+                .forEach { result ->
+                    val partNumber = PartNumber(result.value.toInt(), result.range, y)
+                    partNumber.xRange.forEach { x -> board[y][x] = partNumber }
                 }
-            }
         }
-
-        return numbersInContact.sumOf { it.third }
+        return board
     }
 
-    private fun getContactZones(symbols: Map<Int, Set<Int>>): Map<IntRange, Set<IntRange>> {
-        return symbols
-            .mapKeys { (y) -> y - 1..y + 1 }
-            .mapValues { (_, xs) -> xs.map { x -> (x - 1)..(x + 1) }.toSet() }
-    }
+    data class PartNumber(val number: Int, val xRange: IntRange, val y: Int)
 
-    private fun parseSymbols(input: String): Map<Int, Set<Int>> {
-        val symbols = emptyMap<Int, MutableSet<Int>>().toMutableMap()
-        input.split("\n").forEachIndexed { y, row ->
-            symbolRegex.findAll(row).forEach { result ->
-                val x = result.range.first
-                symbols[y]?.add(x) ?: (symbols.put(y, mutableSetOf(x)))
-            }
-        }
-        return symbols
-    }
+    data class Point2D(val x: Int, val y: Int)
 
-    private fun parseNumbers(input: String): MutableMap<Int, MutableMap<IntRange, Int>> {
-        val numbers = emptyMap<Int, MutableMap<IntRange, Int>>().toMutableMap()
-        input.split("\n").forEachIndexed { y, row ->
-            numberRegex.findAll(row).forEach { result ->
-                val number = result.value.toInt()
-                val xRange = result.range
-                if (numbers.containsKey(y)) {
-                    numbers[y]!![xRange] = number
-                } else {
-                    numbers[y] = mutableMapOf(xRange to number)
-                }
-            }
-        }
-        return numbers
-    }
 }
 
 class Day03b(inputFileName: String) : Day(inputFileName) {
@@ -101,17 +93,17 @@ class Day03b(inputFileName: String) : Day(inputFileName) {
 
     private fun parsePartNumbers(input: String): Array<Array<PartNumber?>> {
         val rows = input.split("\n")
-        val numbers = Array(rows.size) { Array<PartNumber?>(rows.first().length) { null } }
+        val board = Array(rows.size) { Array<PartNumber?>(rows.first().length) { null } }
 
         rows.forEachIndexed { y, row ->
             "\\d+".toRegex()
                 .findAll(row)
                 .forEach { result ->
                     val partNumber = PartNumber(result.value.toInt(), result.range, y)
-                    partNumber.xRange.forEach { x -> numbers[y][x] = partNumber }
+                    partNumber.xRange.forEach { x -> board[y][x] = partNumber }
                 }
         }
-        return numbers
+        return board
     }
 
     data class PartNumber(val number: Int, val xRange: IntRange, val y: Int)
