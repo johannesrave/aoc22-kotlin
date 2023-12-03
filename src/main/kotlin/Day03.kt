@@ -12,7 +12,7 @@ fun main() {
 class Day03a(inputFileName: String) : Day(inputFileName) {
 
     fun solve(): Int {
-        val symbolPositions = parseSymbols(input)
+        val symbolPositions = parsePositionsByPattern(input, """[^0-9.]""")
         val partNumbers = parsePartNumbers(input)
 
         return symbolPositions
@@ -30,13 +30,15 @@ class Day03a(inputFileName: String) : Day(inputFileName) {
         }.toSet()
     }
 
-    private fun parseSymbols(input: String): List<Point2D> = input
-        .split("\n")
-        .flatMapIndexed { y, row ->
-            """[^0-9.]""".toRegex()
-                .findAll(row)
-                .map { result -> Point2D(result.range.first, y) }
-        }
+    private fun parsePositionsByPattern(input: String, pattern: String): List<Point2D> {
+        return input
+            .split("\n")
+            .flatMapIndexed { y, row ->
+                pattern.toRegex()
+                    .findAll(row)
+                    .map { result -> Point2D(result.range.first, y) }
+            }
+    }
 
     private fun parsePartNumbers(input: String): Array<Array<PartNumber?>> {
         val rows = input.split("\n")
@@ -61,7 +63,7 @@ class Day03a(inputFileName: String) : Day(inputFileName) {
 
 class Day03b(inputFileName: String) : Day(inputFileName) {
     fun solve(): Int {
-        val gearCandidates = parseGearCandidates(input)
+        val gearCandidates = parsePositionsByPattern(input, "\\*")
         val partNumbers = parsePartNumbers(input)
 
         return gearCandidates
@@ -79,13 +81,15 @@ class Day03b(inputFileName: String) : Day(inputFileName) {
         }.toSet()
     }
 
-    private fun parseGearCandidates(input: String): List<Point2D> = input
-        .split("\n")
-        .flatMapIndexed { y, row ->
-            "\\*".toRegex()
-                .findAll(row)
-                .map { result -> Point2D(result.range.first, y) }
-        }
+    private fun parsePositionsByPattern(input: String, pattern: String): List<Point2D> {
+        return input
+            .split("\n")
+            .flatMapIndexed { y, row ->
+                pattern.toRegex()
+                    .findAll(row)
+                    .map { result -> Point2D(result.range.first, y) }
+            }
+    }
 
     private fun parsePartNumbers(input: String): Array<Array<PartNumber?>> {
         val rows = input.split("\n")
