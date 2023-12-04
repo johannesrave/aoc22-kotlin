@@ -1,3 +1,4 @@
+import kotlin.math.pow
 import kotlin.system.measureTimeMillis
 
 
@@ -9,25 +10,30 @@ fun main() {
     println("solution took $durationB milliseconds")
 }
 
-class Day04a(inputFileName: String) : Day(inputFileName) {
-    fun solve(): Int {
-        val numbers = parseNumbers(input)
+open class Day04a(inputFileName: String) : Day(inputFileName) {
+    open fun solve(): Int {
+        val lotteryCards = parseLotteryCards(input)
+
+        return lotteryCards.map { (winningNumbers, numbersYouHave) ->
+            winningNumbers.intersect(numbersYouHave)
+        }.sumOf { 2.toDouble().pow(it.size-1).toInt() }
     }
 
-    private fun parseSymbols(input: String): Map<Int, Set<Int>> {
-        val symbols = emptyMap<Int, MutableSet<Int>>().toMutableMap()
-        input.split("\n").forEachIndexed { y, row ->
-            symbolRegex.findAll(row).forEach { result ->
-                val x = result.range.first
-                symbols[y]?.add(x) ?: (symbols.put(y, mutableSetOf(x)))
-            }
+    private fun parseLotteryCards(input: String): List<Pair<Set<Int>, Set<Int>>> {
+        val cards = input.split("\n")
+        return cards.map { card ->
+            val banana = card.split(":")[1]
+            val (firstHalf, secondHalf) = banana.split("|")
+            val winningNumbers = firstHalf.split(" ").filter { it.isNotBlank() }.map { it.toInt() }.toSet()
+            val numbersYouHave = secondHalf.split(" ").filter { it.isNotBlank() }.map { it.toInt() }.toSet()
+
+            winningNumbers to numbersYouHave
         }
-        return symbols
     }
 }
 
-class Day04b(inputFileName: String) : Day(inputFileName) {
-    fun solve(): Int {
+class Day04b(inputFileName: String) : Day04a(inputFileName) {
+    override fun solve(): Int {
         return 0
     }
 }
