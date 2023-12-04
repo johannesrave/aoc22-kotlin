@@ -16,10 +16,10 @@ open class Day04a(inputFileName: String) : Day(inputFileName) {
 
         return lotteryCards.map { (winningNumbers, numbersYouHave) ->
             winningNumbers.intersect(numbersYouHave)
-        }.sumOf { 2.toDouble().pow(it.size-1).toInt() }
+        }.sumOf { 2.toDouble().pow(it.size - 1).toInt() }
     }
 
-    private fun parseLotteryCards(input: String): List<Pair<Set<Int>, Set<Int>>> {
+    fun parseLotteryCards(input: String): List<Pair<Set<Int>, Set<Int>>> {
         val cards = input.split("\n")
         return cards.map { card ->
             val banana = card.split(":")[1]
@@ -34,6 +34,19 @@ open class Day04a(inputFileName: String) : Day(inputFileName) {
 
 class Day04b(inputFileName: String) : Day04a(inputFileName) {
     override fun solve(): Int {
-        return 0
+        val lotteryCards = parseLotteryCards(input)
+            .map { (winningNumbers, numbersYouHave) -> LotteryCard(winningNumbers, numbersYouHave) }
+
+        return lotteryCards
+            .mapIndexed { i, card ->
+                (i + 1..i + card.hits()).forEach { cardIndex ->
+                    lotteryCards[cardIndex].copies += card.copies
+                }
+                card
+            }.sumOf { it.copies }
+    }
+
+    data class LotteryCard(val winningNumbers: Set<Int>, val numbersYouHave: Set<Int>, var copies: Int = 1) {
+        fun hits() = winningNumbers.intersect(numbersYouHave).size
     }
 }
