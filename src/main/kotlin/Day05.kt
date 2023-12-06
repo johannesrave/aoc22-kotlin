@@ -10,34 +10,40 @@ fun main() {
 }
 
 open class Day05a(inputFileName: String) : Day(inputFileName) {
-    open fun solve(): Int {
+    open fun solve(): Long {
         val seeds = parseSeeds(input)
-        val horticulturalMappingRanges = parseHorticulturalMappingRanges(input)
+        val horticulturalMappings = parseHorticulturalMappingRanges(input)
 
-        return horticulturalMappingRanges
-            .also { println(it) }
-            .fold(seeds) { items, ranges ->
+        return horticulturalMappings
+            .fold(seeds) { items, mapping ->
+//                println(mapping.name)
                 items.map { item ->
-                    ranges.find { item in it.range }?.let { item + it.offset } ?: item
-                }.also { println(it) }
+                    mapping.transformations.find { item in it.criterion }
+                        ?.let { item + it.offset } ?: item
+                }
+//                    .also { println(it) }
             }.min()
     }
 
     private fun parseSeeds(input: String) = input.split("\n\n")
-        .take(1).flatMap { line -> line.split(" ").drop(1).map { it.toInt() } }
+        .take(1).flatMap { line -> line.split(" ").drop(1).map { it.toLong() } }
 
-    fun parseHorticulturalMappingRanges(input: String) = input.split("\n\n")
+    private fun parseHorticulturalMappingRanges(input: String) = input.split("\n\n")
         .drop(1)
-        .map {
-            it
-                .split("\n")
-                .drop(1)
-                .map { it.split(" ").map { it.toInt() } }
-                .map { HorticulturalMappingRange(it[0]..<it[0] + it[2], it[0] - it[1]) }
+        .map { block ->
+            val lines = block.split("\n")
+            val name = lines[0].split(" ")[0].also { println(it) }
+            val transformations = lines.drop(1)
+                .map { it.split(" ").map { it.toLong() } }
+                .map {
+                    val (destination, source, length) = it
+                    Transformation(source..source + length, destination - source).also { println(it) }
+                }
+            HorticulturalMapping(name, transformations)
         }
 
-
-    data class HorticulturalMappingRange(val range: IntRange, val offset: Int)
+    data class HorticulturalMapping(val name: String, val transformations: List<Transformation>)
+    data class Transformation(val criterion: LongRange, val offset: Long)
 }
 
 //class Day05b(inputFileName: String) : Day05a(inputFileName) {
