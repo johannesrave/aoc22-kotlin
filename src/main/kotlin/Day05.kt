@@ -17,7 +17,7 @@ open class Day05a(inputFileName: String) : Day(inputFileName) {
         return horticulturalMappings
             .fold(seeds) { items, mapping ->
                 items.map { item ->
-                    mapping.criterionRanges.find { item in it.criterionRange }
+                    mapping.criterionRanges.find { item in it.range }
                         ?.let { item + it.offset } ?: item
                 }
             }.min()
@@ -36,18 +36,18 @@ open class Day05a(inputFileName: String) : Day(inputFileName) {
                 .map {
                     val (destination, source, length) = it
                     CriterionRange(Day05b.SeedRange(source, source + length - 1), destination - source)
-                }.sortedBy { it.criterionRange.first }
+                }.sortedBy { it.range.first }
             HorticulturalStep(name, criterionRanges)
         }
 
-    data class CriterionRange(val criterionRange: Day05b.SeedRange, val offset: Long)
+    data class CriterionRange(val range: Day05b.SeedRange, val offset: Long)
     data class HorticulturalStep(val name: String, val criterionRanges: List<CriterionRange>)
 }
 
 class Day05b(inputFileName: String) : Day05a(inputFileName) {
     override fun solve(): Long {
-        val allSeedRanges = parseSeedRanges(input).also { println(it) }
-        val horticulturalSteps = parseHorticulturalSteps(input).also { println(it) }
+        val allSeedRanges = parseSeedRanges(input)
+        val horticulturalSteps = parseHorticulturalSteps(input)
 
         /*
         * algo:
@@ -102,8 +102,6 @@ class Day05b(inputFileName: String) : Day05a(inputFileName) {
         }
 
         fun intersection(otherRange: SeedRange): SeedRange {
-            if (!this.overlaps(otherRange)) throw IllegalArgumentException("Can't build INTERSECTION, ranges don't overlap.")
-
             return when {
                 first in otherRange && last in otherRange -> this
                 first in otherRange && last !in otherRange -> SeedRange(first, otherRange.last)
@@ -113,39 +111,11 @@ class Day05b(inputFileName: String) : Day05a(inputFileName) {
             }
         }
 
-
-        fun difference(otherRange: SeedRange): List<SeedRange> {
-//            if (!this.overlaps(otherRange)) throw IllegalArgumentException("Can't build DIFFERENCE, ranges don't overlap.")
-
-            return when {
-
-                first in otherRange && last in otherRange -> when {
-                    first == otherRange.first && last == otherRange.last -> listOf(this)
-                    first == otherRange.first -> listOf(SeedRange(last + 1, otherRange.last))
-                    last == otherRange.last -> listOf(SeedRange(first, otherRange.first - 1))
-                    else -> listOf(SeedRange(first, otherRange.first - 1), SeedRange(last + 1, otherRange.last))
-                }
-
-                first in otherRange && last !in otherRange ->
-                    listOf(SeedRange(otherRange.first, first - 1), SeedRange(otherRange.last, last))
-
-                first !in otherRange && last in otherRange ->
-                    listOfNotNull(
-                        SeedRange(first, otherRange.first - 1),
-                        SeedRange(last + 1, otherRange.last).takeIf { it.first != it.last })
-
-                first !in otherRange && last !in otherRange ->
-                    listOf(SeedRange(first, otherRange.first - 1), SeedRange(otherRange.last, last))
-
-                else -> throw IllegalStateException()
-            }
-        }
-
         operator fun minus(otherRange: SeedRange): List<SeedRange> {
             return when {
                 first in otherRange && last in otherRange -> listOf()
 
-                first !in otherRange && last in otherRange -> listOfNotNull(SeedRange(first, otherRange.first - 1))
+                first !in otherRange && last in otherRange -> listOf(SeedRange(first, otherRange.first - 1))
 
                 first in otherRange && last !in otherRange -> listOf(SeedRange(otherRange.last + 1, last))
 
@@ -157,32 +127,55 @@ class Day05b(inputFileName: String) : Day05a(inputFileName) {
         }
 
         fun shift(offset: Long): SeedRange = SeedRange(first + offset, last + offset)
+
+        fun minusMultiple(testCriterionRanges: List<SeedRange>): List<SeedRange> {
+            if (testCriterionRanges.isEmpty())
+                return listOf(this)
+
+            val sortedCritRanges = testCriterionRanges.sortedBy { it.first }
+
+            val result = listOfNotNull(
+                SeedRange(first, sortedCritRanges.first().first - 1).takeIf { it.first <= it.last },
+                SeedRange(sortedCritRanges.last().last + 1, last).takeIf { it.first <= it.last }
+            ).toMutableList()
+
+            if (sortedCritRanges.size > 1) {
+                for (index in 0..<sortedCritRanges.size-1) {
+                    val cur = sortedCritRanges[index]
+                    val next = sortedCritRanges[index + 1]
+                    result.add(SeedRange(cur.last + 1, next.first - 1))
+                }
+            }
+            return result.sortedBy { it.first }
+        }
     }
 }
 
-fun List<Day05b.SeedRange>.horticulturate(horticulturalSteps: List<Day05a.HorticulturalStep>): List<Day05b.SeedRange> {
-    return horticulturalSteps
-        .fold(this) { seedRanges, step ->
-            val transformations = step.criterionRanges
-            println(step.name)
-            println(seedRanges)
-            println(seedRanges)
-            seedRanges.map { seedRange ->
-                val splitRanges = transformations.flatMap { transformation ->
+fun List<Day05b.SeedRange>.horticulturate(horticulturalSteps: List<Day05a.HorticulturalStep>): List<Day05b.SeedRange> =
+    horticulturalSteps
+        .fold(this) { seedRanges, (name,criterionRanges) ->
+//            val criterionRanges = step.criterionRanges
+            println(name)
+            return@fold seedRanges.flatMap { seedRange ->
+                val relevantCritRanges = criterionRanges.filter { seedRange.overlaps(it.range) }
+                val untransformed = seedRange.minusMultiple(relevantCritRanges.map { it.range })
 
-                    if (seedRange.overlaps(transformation.criterionRange)) {
-                        val rangeToTransform = seedRange.intersection(transformation.criterionRange)
-                        val rangeToLeaveBe = seedRange.difference(rangeToTransform)
-
-                        listOf(rangeToTransform.shift(transformation.offset), rangeToLeaveBe)
-                    } else {
-                        listOf(seedRange)
-                    }
+                val shifted = relevantCritRanges.map { (range, offset) ->
+                    seedRange.intersection(range).shift(offset)
                 }
 
-                return@map splitRanges
-            }.also { println(it) }
+                val result = (shifted + untransformed).sortedBy { it.first }
+                println("seedRange")
+                println(seedRange)
+                println("relevantCritRanges")
+                println(relevantCritRanges)
+                println("untransformed")
+                println(untransformed)
+                println("shifted")
+                println(shifted)
+                println("result")
+                println(result)
 
-            return@fold seedRanges
+                return@flatMap result
+            }
         }
-}
