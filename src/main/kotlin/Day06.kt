@@ -30,6 +30,22 @@ open class Day06a(inputFileName: String) : Day(inputFileName) {
 
 class Day06b(inputFileName: String) : Day06a(inputFileName) {
     override fun solve(): Int {
-        return -1
+        val (time, recordDistance) = parseTimeAndDistance(input)
+
+        var solutionCounter = 0
+        for (ms in 0..<time) {
+            val distanceMoved = ms * (time - ms)
+            if (distanceMoved > recordDistance) solutionCounter += 1
+        }
+        return solutionCounter
     }
+
+    private fun parseTimeAndDistance(input: String) = input.lines()
+        .map {
+            "\\d".toRegex()
+                .findAll(it)
+                .map { match -> match.value }
+                .joinToString("")
+                .toLong()
+        }
 }

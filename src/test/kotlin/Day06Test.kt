@@ -18,12 +18,12 @@ class Day06bSolutionTest {
 
     @Test
     fun solveTestInput() {
-        assertEquals(46, Day06b("input/06.test.txt").solve())
+        assertEquals(71503, Day06b("input/06.test.txt").solve())
     }
 
     @Test
     fun solveInput() {
-        assertEquals(6082852, Day06b("input/06.txt").solve())
+        assertEquals(27363861, Day06b("input/06.txt").solve())
     }
 }
 
