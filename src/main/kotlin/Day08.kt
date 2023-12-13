@@ -10,7 +10,7 @@ fun main() {
 }
 
 open class Day08a(inputFileName: String) : Day(inputFileName) {
-    open fun solve(): Int {
+    open fun solve(): Long {
         val nodeMap = Node.parseMap(input)
         val instructionSequence = Instruction.sequenceFrom(input)
 
@@ -18,7 +18,7 @@ open class Day08a(inputFileName: String) : Day(inputFileName) {
         val finalLabel = "ZZZ"
 
         instructionSequence.forEachIndexed { i, inst ->
-            if (currentLabel == finalLabel) return i
+            if (currentLabel == finalLabel) return i.toLong()
             currentLabel = nodeMap[currentLabel]!!.move(inst)
         }
 
@@ -47,7 +47,7 @@ open class Day08a(inputFileName: String) : Day(inputFileName) {
         L, R;
 
         companion object {
-            fun parseList(input: String): List<Instruction> = input.lines().first().map {
+            private fun parseList(input: String): List<Instruction> = input.lines().first().map {
                 when (it) {
                     'L' -> L
                     'R' -> R
@@ -62,54 +62,43 @@ open class Day08a(inputFileName: String) : Day(inputFileName) {
 }
 
 class Day08b(inputFileName: String) : Day08a(inputFileName) {
-    override fun solve(): Int {
+    override fun solve(): Long {
         val nodeMap = Node.parseMap(input)
-        val instructionSequence = Instruction.sequenceFrom(input)
-        val noOfInstructions = Instruction.parseList(input).size
+        val initialLabels = nodeMap.filter { (label, _) -> label[2] == 'A' }.map { (label) -> label }
+        val finalLabels = nodeMap.filter { (label, _) -> label[2] == 'Z' }.map { (label) -> label }.toSet()
 
-        var currentLabels = nodeMap.filter { (label, _) -> label[2] == 'A' }.map { (label) -> label }
-        val initialLabels = currentLabels.map { label -> nodeMap[label]!!.move(Instruction.L) }
-        val finalLabels = nodeMap.filter { (label, _) -> label[2] == 'Z' }.map { (label) -> label }
+        return initialLabels.map { initialLabel ->
+            val instructions = Instruction.sequenceFrom(input).iterator()
+            var moves = 0L
+            var currentLabel = initialLabel
+            while(currentLabel !in finalLabels){
+                moves++
+                val instruction = instructions.next()
+                currentLabel = nodeMap[currentLabel]!!.move(instruction)
+            }
+            moves
+        }.findLCM()
+    }
+}
 
-        println("nodeMap:           $nodeMap")
-        println("initialLabels:     $initialLabels")
-        println("currentLabels:     $currentLabels")
-        println("finalLabels:       $finalLabels")
-        println("noOfInstructions:  $noOfInstructions")
-
-        instructionSequence.forEachIndexed { i, inst ->
-            if (i % 100_000_000 == 0) println("$i moves made. Current labels: $currentLabels")
-
-            if (currentLabels == initialLabels) println("all ghosts have cycled back in $i moves to $initialLabels")
-
-            if (currentLabels.all { it[2] == 'Z' }) return i
-            (currentLabels zip initialLabels)
-                .forEach { (cur, init) ->
-                    val diffToInsts = (i - 1) % noOfInstructions
-                    if (cur == init && diffToInsts < 1) println("$cur has cycled back in $i moves with diffToInsts $diffToInsts")
-                }
-
-            currentLabels.filter { it[2] == 'Z' }
-                .also {
-                    if (it.size > 3) {
-                        println("${it.size} ghosts are on a final Node after $i moves: $it")
-                    }
-                }
-
-            currentLabels = currentLabels.map { label -> nodeMap[label]!!.move(inst) }
+// got this from https://www.baeldung.com/kotlin/lcm
+fun findLCM(a: Long, b: Long): Long {
+    val larger = if (a > b) a else b
+    val maxLcm = a * b
+    var lcm = larger
+    while (lcm <= maxLcm) {
+        if (lcm % a == 0L && lcm % b == 0L) {
+            return lcm
         }
-
-        return -1
+        lcm += larger
     }
+    return maxLcm
 }
 
-class Memoize1<in T, out R>(val f: (T) -> R) : (T) -> R {
-    private val values = mutableMapOf<T, R>()
-    override fun invoke(x: T): R {
-        return values.getOrPut(x) { f(x) }
+fun List<Long>.findLCM(): Long {
+    var result = this[0]
+    for (i in 1..<size) {
+        result = findLCM(result, this[i])
     }
+    return result
 }
-
-fun <T, R> ((T) -> R).memoize(): (T) -> R = Memoize1(this)
-
-val memoizedSumFactors = { x: Int -> (x + x) }.memoize()

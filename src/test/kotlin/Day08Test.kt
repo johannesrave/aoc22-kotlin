@@ -21,9 +21,6 @@ class Day08bSolutionTest {
 
     @Test
     fun solveInput() {
-        assertEquals(-1, Day08b("input/08.txt").solve())
+        assertEquals(12833235391111, Day08b("input/08.txt").solve())
     }
-}
-
-class Day08bUnitTest {
 }
