@@ -9,7 +9,7 @@ class Day08aTest {
 
     @Test
     fun solveInput() {
-        assertEquals(-1, Day08a("input/08.txt").solve())
+        assertEquals(21883, Day08a("input/08.txt").solve())
     }
 }
 
@@ -17,7 +17,7 @@ class Day08bSolutionTest {
 
     @Test
     fun solveTestInput() {
-        assertEquals(-1, Day08b("input/08.test.txt").solve())
+        assertEquals(6, Day08b("input/08.test.txt").solve())
     }
 
     @Test
