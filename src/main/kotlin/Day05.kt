@@ -81,29 +81,30 @@ class Day05b(inputFileName: String) : Day05a(inputFileName) {
     }
 
     data class Range(val first: Long, val last: Long) {
-        operator fun minus(otherRanges: List<Range>): List<Range> {
-            if (otherRanges.isEmpty()) return listOf(this)
-
-            val sortedCritRanges = otherRanges.sortedBy { it.first }
-
-            val result = listOfNotNull(
-                Range(first, sortedCritRanges.first().first - 1).takeIf { it.first <= it.last },
-                Range(sortedCritRanges.last().last + 1, last).takeIf { it.first <= it.last }
-            ).toMutableList()
-
-            if (sortedCritRanges.size > 1) {
-                for (index in 0..<sortedCritRanges.size - 1) {
-                    val cur = sortedCritRanges[index]
-                    val next = sortedCritRanges[index + 1]
-                    result.add(Range(cur.last + 1, next.first - 1))
-                }
-            }
-            return result.sortedBy { it.first }
-        }
-
         fun transform(offset: Long): Range = Range(first + offset, last + offset)
 
-        fun overlaps(otherRange: Range): Boolean = !(last <= otherRange.first || first >= otherRange.last)
+        operator fun minus(rangesToDeduct: List<Range>): List<Range> {
+            if (rangesToDeduct.isEmpty()) return listOf(this)
+
+            val otherRanges = rangesToDeduct.sortedBy { it.first }
+
+            val remainingRanges = listOf(
+                Range(first, otherRanges.first().first - 1),
+                Range(otherRanges.last().last + 1, last)
+            )
+                .filter { it.first <= it.last }
+                .toMutableList()
+
+            if (otherRanges.size <= 1) return remainingRanges
+
+            for (index in 0..<otherRanges.size - 1) {
+                val cur = otherRanges[index]
+                val next = otherRanges[index + 1]
+                remainingRanges.add(Range(cur.last + 1, next.first - 1))
+            }
+
+            return remainingRanges.sortedBy { it.first }
+        }
 
         fun intersection(otherRange: Range): Range = when {
             first in otherRange && last in otherRange -> this
@@ -112,6 +113,8 @@ class Day05b(inputFileName: String) : Day05a(inputFileName) {
             first !in otherRange && last !in otherRange -> otherRange
             else -> throw IllegalStateException()
         }
+
+        fun overlaps(otherRange: Range): Boolean = first < otherRange.last && otherRange.first < last
 
         operator fun contains(num: Long): Boolean = num >= this.first && num <= this.last
     }
