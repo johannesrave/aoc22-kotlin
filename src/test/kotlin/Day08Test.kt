@@ -14,10 +14,9 @@ class Day08aTest {
 }
 
 class Day08bSolutionTest {
-
     @Test
     fun solveTestInput() {
-        assertEquals(6, Day08b("input/08.test.txt").solve())
+        assertEquals(6, Day08b("input/08b.test.txt").solve())
     }
 
     @Test

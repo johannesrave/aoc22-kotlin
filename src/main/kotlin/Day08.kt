@@ -36,7 +36,7 @@ open class Day08a(inputFileName: String) : Day(inputFileName) {
 
         companion object {
             fun parseMap(input: String): Map<String, Node> =
-                """([A-Z]{3}) = \(([A-Z]{3}), ([A-Z]{3})\)""".toRegex().findAll(input).map {
+                """(.{3}) = \((.{3}), (.{3})\)""".toRegex().findAll(input).map {
                     val (_, label, left, right) = it.groupValues
                     label to Node(label, left, right)
                 }.toMap()
@@ -71,6 +71,7 @@ class Day08b(inputFileName: String) : Day08a(inputFileName) {
         val initialLabels = currentLabels.map { label -> nodeMap[label]!!.move(Instruction.L) }
         val finalLabels = nodeMap.filter { (label, _) -> label[2] == 'Z' }.map { (label) -> label }
 
+        println("nodeMap:           $nodeMap")
         println("initialLabels:     $initialLabels")
         println("currentLabels:     $currentLabels")
         println("finalLabels:       $finalLabels")
@@ -78,10 +79,14 @@ class Day08b(inputFileName: String) : Day08a(inputFileName) {
 
         instructionSequence.forEachIndexed { i, inst ->
             if (i % 100_000_000 == 0) println("$i moves made. Current labels: $currentLabels")
+
+            if (currentLabels == initialLabels) println("all ghosts have cycled back in $i moves to $initialLabels")
+
             if (currentLabels.all { it[2] == 'Z' }) return i
             (currentLabels zip initialLabels)
                 .forEach { (cur, init) ->
-                    if (cur == init && i-1 % noOfInstructions == 0) println("$cur has cycled back in $i moves")
+                    val diffToInsts = (i - 1) % noOfInstructions
+                    if (cur == init && diffToInsts < 1) println("$cur has cycled back in $i moves with diffToInsts $diffToInsts")
                 }
 
             currentLabels.filter { it[2] == 'Z' }
@@ -101,7 +106,7 @@ class Day08b(inputFileName: String) : Day08a(inputFileName) {
 class Memoize1<in T, out R>(val f: (T) -> R) : (T) -> R {
     private val values = mutableMapOf<T, R>()
     override fun invoke(x: T): R {
-        return values.getOrPut(x, { f(x) })
+        return values.getOrPut(x) { f(x) }
     }
 }
 
