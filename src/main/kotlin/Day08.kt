@@ -22,9 +22,6 @@ open class Day08a(inputFileName: String) : Day(inputFileName) {
             currentLabel = nodeMap[currentLabel]!!.move(inst)
         }
 
-        println(nodeMap)
-        println(instructionSequence)
-
         return -1
     }
 
