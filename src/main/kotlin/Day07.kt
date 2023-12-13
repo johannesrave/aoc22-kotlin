@@ -24,9 +24,10 @@ open class Day07a(inputFileName: String) : Day(inputFileName) {
         .map { (rawCards, rawBid) ->
             val cards = Card.listFrom(rawCards)
             val occurrences = cards.groupBy { it.name }.map { (_, list) -> list.size }.sortedDescending()
-            val type = Type.entries.find { it.matches(occurrences) } ?: throw IllegalStateException()
+            val type = Type.from(occurrences)
             Hand(cards, type, rawBid.toInt())
         }
+
 
     data class Hand(val cards: List<Card>, val type: Type, val bid: Int) : Comparable<Hand> {
         override fun compareTo(other: Hand): Int {
@@ -82,11 +83,84 @@ open class Day07a(inputFileName: String) : Day(inputFileName) {
 
         fun matches(sortedOccurrences: List<Int>): Boolean =
             (sortedDistribution zip sortedOccurrences).all { (dist, occ) -> dist == occ }
+
+        companion object {
+            fun from(occurrences: List<Int>) = entries.find { it.matches(occurrences) }
+                ?: throw IllegalStateException()
+        }
     }
 }
 
 class Day07b(inputFileName: String) : Day07a(inputFileName) {
     override fun solve(): Int {
-        return -1
+        val hands = parseHands(input).sorted()
+
+        return hands.foldIndexed(0) { i, total, hand -> total + ((i + 1) * hand.bid) }
+    }
+
+    private fun parseHands(input: String): List<Hand> = "(.{5}) (\\d+)".toRegex()
+        .findAll(input)
+        .associate { it.groupValues[1] to it.groupValues[2] }
+        .also { println(it) }
+        .map { (rawCards, rawBid) ->
+            val cards = Card.listFrom(rawCards)
+            val occurrences = Hand.occurrencesFrom(cards)
+            val type = Type.from(occurrences)
+            Hand(cards, type, rawBid.toInt())
+        }
+
+    data class Hand(val cards: List<Card>, val type: Type, val bid: Int) : Comparable<Hand> {
+        override fun compareTo(other: Hand): Int {
+            if (type.ordinal > other.type.ordinal) return 1
+            else if (type.ordinal < other.type.ordinal) return -1
+
+            this.cards.forEachIndexed { i, card ->
+                if (card.ordinal > other.cards[i].ordinal) return 1
+                else if (card.ordinal < other.cards[i].ordinal) return -1
+            }
+
+            return 0
+        }
+
+        companion object {
+            fun occurrencesFrom(cards: List<Card>): List<Int> {
+                val (jokers, cardsWithoutJokers) = cards.partition { it == Card.Joker }
+
+                if (jokers.size == 5) return listOf(5)
+                return cardsWithoutJokers
+                    .groupBy { it.name }
+                    .map { (_, list) -> list.size }
+                    .sortedDescending()
+                    .mapIndexed { i, occ ->
+                        if (i == 0) occ + jokers.size else occ
+                    }
+            }
+        }
+    }
+
+    enum class Card {
+        Joker, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Queen, King, Ace;
+
+        companion object {
+            fun listFrom(s: String): List<Card> =
+                s.map {
+                    when (it) {
+                        'J' -> Joker
+                        '2' -> Two
+                        '3' -> Three
+                        '4' -> Four
+                        '5' -> Five
+                        '6' -> Six
+                        '7' -> Seven
+                        '8' -> Eight
+                        '9' -> Nine
+                        'T' -> Ten
+                        'Q' -> Queen
+                        'K' -> King
+                        'A' -> Ace
+                        else -> throw IllegalArgumentException("'$it' is not a valid Card-label.")
+                    }
+                }
+        }
     }
 }

@@ -17,11 +17,28 @@ class Day07bSolutionTest {
 
     @Test
     fun solveTestInput() {
-        assertEquals(-1, Day07b("input/07.test.txt").solve())
+        assertEquals(5905, Day07b("input/07.test.txt").solve())
     }
 
     @Test
     fun solveInput() {
-        assertEquals(-1, Day07b("input/07.txt").solve())
+        assertEquals(254083736, Day07b("input/07.txt").solve())
+    }
+}
+
+class Day07bUnitTest {
+
+    @Test
+    fun `Hand_occurrencesFrom with five Jokers`() {
+        val testOccs = Day07b.Hand.occurrencesFrom(
+            listOf(
+                Day07b.Card.Joker,
+                Day07b.Card.Joker,
+                Day07b.Card.Joker,
+                Day07b.Card.Joker,
+                Day07b.Card.Joker,
+            )
+        )
+        assertEquals(listOf(5), testOccs)
     }
 }
