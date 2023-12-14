@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test
 class Day09aTest {
     @Test
     fun solveTestInput() {
-        assertEquals(6, Day09a("input/09.test.txt").solve())
+        assertEquals(114, Day09a("input/09.test.txt").solve())
     }
 
     @Test
