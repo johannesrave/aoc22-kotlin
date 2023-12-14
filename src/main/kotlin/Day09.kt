@@ -10,13 +10,29 @@ fun main() {
 }
 
 open class Day09a(inputFileName: String) : Day(inputFileName) {
-    open fun solve(): Long {
-        return 0
+    open fun solve(): Int {
+        val histories = parseHistories()
+
+        return histories.sumOf { history -> extrapolate(history) }
+    }
+
+    private fun extrapolate(history: List<Int>): Int {
+        val differences = history.indices.drop(1).map { i -> history[i] - history[i - 1] }
+
+        return if (differences.all { it == 0 })
+            history.last() + differences.last()
+        else history.last() + extrapolate(differences)
+    }
+
+    private fun parseHistories() = input.lines().map {
+        """(-?\d+)""".toRegex()
+            .findAll(it)
+            .map { match -> match.value.toInt() }.toList()
     }
 }
 
 class Day09b(inputFileName: String) : Day09a(inputFileName) {
-    override fun solve(): Long {
+    override fun solve(): Int {
         return 0
     }
 }
