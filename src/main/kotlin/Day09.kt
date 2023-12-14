@@ -16,11 +16,11 @@ open class Day09a(inputFileName: String) : Day(inputFileName) {
         return histories.sumOf { history -> extrapolate(history) }
     }
 
-    private fun extrapolate(history: List<Int>): Int {
+    open fun extrapolate(history: List<Int>): Int {
         val differences = history.indices.drop(1).map { i -> history[i] - history[i - 1] }
 
         return if (differences.all { it == 0 })
-            history.last() + differences.last()
+            history.last()
         else history.last() + extrapolate(differences)
     }
 
@@ -32,7 +32,10 @@ open class Day09a(inputFileName: String) : Day(inputFileName) {
 }
 
 class Day09b(inputFileName: String) : Day09a(inputFileName) {
-    override fun solve(): Int {
-        return 0
+    override fun extrapolate(history: List<Int>): Int {
+        val differences = history.indices.drop(1).map { i -> history[i] - history[i - 1] }
+
+        return if (differences.all { it == 0 }) history.first()
+        else history.first() - extrapolate(differences)
     }
 }
