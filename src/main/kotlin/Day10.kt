@@ -36,21 +36,23 @@ open class Day10a(inputFileName: String) : Day(inputFileName) {
         }
 
         private fun findStart(): Pipe =
-            tiles.mapNotNull { row -> row.find { pipe -> pipe.directions.size == 4 } }.single()
+            tiles.mapNotNull { row -> row.find { pipe -> pipe.connectedDirections.size == 4 } }.single()
 
         private fun moveToConnectedNeighbour(pipe: Pipe): Pipe? {
             val (x, y) = pipe
-            val (dir, connectedNeighbour) = pipe.directions
+            val (dir, connectedNeighbour) = pipe.connectedDirections
                 .filter { it != pipe.visitedFrom }
-                .mapNotNull { dir ->
-                    val neighbour = tiles.getOrNull(y + dir.y)?.getOrNull(x + dir.x)
-                        ?: return@mapNotNull null
-                    dir to neighbour
-                }
-                .filter { (dir, neighbour) -> neighbour.visitedFrom == null }
-                .find { (dir, neighbour) -> dir.connectsTo in neighbour.directions } ?: return null
-            connectedNeighbour.visitedFrom = dir.connectsTo
+                .mapNotNull { dir -> neighbourOrNull(x, y, dir) }
+                .find { (dir, neighbour) -> neighbour.isUnvisited() && neighbour.isReachableFrom(dir) }
+                ?: return null
+            connectedNeighbour.visitedFrom = dir.connectsTo()
             return connectedNeighbour
+        }
+
+        private fun neighbourOrNull(x: Int, y: Int, dir: Direction): Pair<Direction, Pipe>? {
+            val neighbour = tiles.getOrNull(y + dir.y)?.getOrNull(x + dir.x)
+                ?: return null
+            return dir to neighbour
         }
 
         companion object {
@@ -62,30 +64,39 @@ open class Day10a(inputFileName: String) : Day(inputFileName) {
             }
         }
 
+        fun findEnclosedTiles(pipeLoop: List<Pipe>): Set<Pipe> {
+            val borders = pipeLoop.toSet()
+            pipeLoop.flatMap { tile ->
+                // tile.visitedFrom.turnClockwise()
+                listOf(1)
+            }
+            return emptySet()
+        }
+
         override fun toString(): String = tiles.joinToString("\n") { row -> row.joinToString(" ") { "[$it]" } }
     }
 
-    data class Pipe(val x: Int, val y: Int, val directions: Set<Direction>, var visitedFrom: Direction? = null)
+    data class Pipe(
+        val x: Int,
+        val y: Int,
+        val connectedDirections: Set<Direction>,
+        var visitedFrom: Direction? = null
+    ) {
+        fun isUnvisited(): Boolean = visitedFrom == null
+        fun isReachableFrom(dir: Direction): Boolean = dir.connectsTo() in connectedDirections
+    }
 
     enum class Direction(val x: Int, val y: Int) {
-        Top(0, -1) {
-            override val connectsTo: Direction
-                get() = Bottom
-        },
-        Right(1, 0) {
-            override val connectsTo: Direction
-                get() = Left
-        },
-        Bottom(0, 1) {
-            override val connectsTo: Direction
-                get() = Top
-        },
-        Left(-1, 0) {
-            override val connectsTo: Direction
-                get() = Right
-        };
+        Top(0, -1),
+        Right(1, 0),
+        Bottom(0, 1),
+        Left(-1, 0);
 
-        abstract val connectsTo: Direction
+        fun connectsTo() = turnBy(2)
+        fun turnClockwise() = turnBy(1)
+        fun turnCounterClockwise() = turnBy(-1)
+
+        private fun turnBy(n: Int) = entries[(this.ordinal + n) % entries.size]
 
         companion object {
             fun from(c: Char): Set<Direction> = when (c) {
@@ -105,6 +116,13 @@ open class Day10a(inputFileName: String) : Day(inputFileName) {
 
 class Day10b(inputFileName: String) : Day10a(inputFileName) {
     override fun solve(): Int {
-        return -1
+        val board = Board.from(input)
+
+        // println(board)
+        val pipeLoop = board.findPipeLoop()
+
+        // println(pipeLoop)
+        val enclosedTiles = board.findEnclosedTiles(pipeLoop)
+        return enclosedTiles.size
     }
 }

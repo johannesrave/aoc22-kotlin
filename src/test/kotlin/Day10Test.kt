@@ -9,14 +9,14 @@ class Day10aTest {
 
     @Test
     fun solveInput() {
-        assertEquals(0, Day10a("input/10.txt").solve())
+        assertEquals(6979, Day10a("input/10.txt").solve())
     }
 }
 
 class Day10bSolutionTest {
     @Test
     fun solveTestInput() {
-        assertEquals(0, Day10b("input/10.test.txt").solve())
+        assertEquals(10, Day10b("input/10.test.txt").solve())
     }
 
     @Test
