@@ -1,3 +1,4 @@
+import Day10a.Neighbour.*
 import kotlin.system.measureTimeMillis
 
 
@@ -26,15 +27,80 @@ open class Day10a(inputFileName: String) : Day(inputFileName) {
 
     data class Board(val tiles: Array<Array<Pipe>>, val input: String) {
         fun findPipeLoop(): List<Pipe> {
-            var currentTile: Pipe? = findStart()
+            var currentTile: Pipe = findStart()
             val loop = mutableListOf<Pipe>()
-            // println(currentTile)
-            while (currentTile != null) {
+            while (true) {
                 loop.add(currentTile)
                 currentTile = moveToConnectedNeighbour(currentTile) ?: break
-                // println("went to $currentTile")
             }
             return loop
+        }
+
+        fun isEnclosedSideClockwise(pipeLoop: List<Pipe>): Boolean {
+            val loopTiles = pipeLoop.toSet()
+            pipeLoop.forEach { pipe ->
+                val dir = pipe.exitedTowards!!.turnClockwise()
+                var tileToCheck = neighbourOrNull(pipe.x, pipe.y, dir)
+                while (true) {
+                    if (tileToCheck == null) return false
+                    if (tileToCheck in loopTiles) return@forEach
+                    tileToCheck = neighbourOrNull(tileToCheck.x, tileToCheck.y, dir)
+                }
+            }
+            return true
+        }
+
+        fun findEnclosedTiles(pipeLoop: List<Pipe>, enclosedClockwise: Boolean): Set<Pipe> {
+            val totalEnclosedTiles = mutableSetOf<Pipe>()
+            pipeLoop.forEach { pipe ->
+                val floodKernels = when (pipe.enteredFrom!! to pipe.exitedTowards!!) {
+                    Direction.Top to Direction.Right -> listOf(W, SW, S)
+                    Direction.Top to Direction.Bottom -> listOf(W)
+                    Direction.Top to Direction.Left -> listOf(NW)
+
+                    Direction.Right to Direction.Top -> listOf(NE)
+                    Direction.Right to Direction.Bottom -> listOf(N, NW, W)
+                    Direction.Right to Direction.Left -> listOf(N)
+
+                    Direction.Bottom to Direction.Top -> listOf(E)
+                    Direction.Bottom to Direction.Right -> listOf(SE)
+                    Direction.Bottom to Direction.Left -> listOf(N, NE, E)
+
+                    Direction.Left to Direction.Top -> listOf(S, SE, E)
+                    Direction.Left to Direction.Right -> listOf(S)
+                    Direction.Left to Direction.Bottom -> listOf(SW)
+
+                    else -> throw IllegalArgumentException()
+                }.mapNotNull { offset -> tiles.getOrNull(pipe.y + offset.y)?.getOrNull(pipe.x + offset.x) }
+                    .filter { it.isUnvisited() }
+                    .also { if (it.isEmpty()) return@forEach }
+
+
+//                val floodKernels2 =
+//                    listOf(pipe.enteredFrom, pipe.exitedTowards).also { println(it) }
+//                        .mapNotNull {
+//                            if (enclosedClockwise) it?.turnClockwise() else it?.turnCounterClockwise()
+//                        }.also { println(it) }
+//                        .mapNotNull { dir -> neighbourOrNull(pipe.x, pipe.y, dir).also { println(dir) } }
+//                        .filter { it.isUnvisited() }
+//                        .toSet()
+//                        .also { if (it.isEmpty()) return@forEach }
+
+                println("going from $pipe, begin flooding at ${floodKernels.joinToString { (x, y) -> "[$x, $y]" }}")
+
+                val queueToCheck = floodKernels.toMutableList()
+                while (queueToCheck.isNotEmpty()) {
+                    val checking = queueToCheck.removeFirst()
+                    if (!checking.isUnvisited()) continue
+                    val (x, y) = checking
+                    println("visiting [$x,$y]")
+                    checking.enteredFrom = Direction.Top
+                    totalEnclosedTiles.add(checking)
+                    queueToCheck.addAll(unvisitedNeighbours(x, y))
+                }
+            }
+            return totalEnclosedTiles
+            // .onEach { println(it) }
         }
 
         private fun findStart(): Pipe =
@@ -43,18 +109,22 @@ open class Day10a(inputFileName: String) : Day(inputFileName) {
         private fun moveToConnectedNeighbour(pipe: Pipe): Pipe? {
             val (x, y) = pipe
             val (dir, connectedNeighbour) = pipe.connectedDirections
-                .filter { it != pipe.visitedFrom }
+                .filter { it != pipe.enteredFrom }
                 .mapNotNull { dir -> dir to (neighbourOrNull(x, y, dir) ?: return@mapNotNull null) }
                 .find { (dir, neighbour) -> neighbour.isUnvisited() && neighbour.isConnectedTo(dir) }
                 ?: return null
             pipe.exitedTowards = dir
-            connectedNeighbour.visitedFrom = dir.connectsTo()
+            connectedNeighbour.enteredFrom = dir.connectsTo()
             return connectedNeighbour
         }
 
         private fun neighbourOrNull(x: Int, y: Int, dir: Direction): Pipe? = tiles
             .getOrNull(y + dir.y)
             ?.getOrNull(x + dir.x)
+
+        private fun unvisitedNeighbours(x: Int, y: Int): List<Pipe> = Direction.entries
+            .mapNotNull { dir -> neighbourOrNull(x, y, dir) }
+            .filter { neighbour -> neighbour.isUnvisited() }
 
         companion object {
             fun from(input: String): Board {
@@ -65,38 +135,8 @@ open class Day10a(inputFileName: String) : Day(inputFileName) {
             }
         }
 
-        fun findEnclosedTiles(pipeLoop: List<Pipe>): Set<Pipe> {
-            val borders = pipeLoop.toSet()
-            val totalEnclosedTiles = mutableSetOf<Pipe>()
-            pipeLoop.asSequence().forEach { currentLoopPipe ->
-                val probeDirs = listOf(currentLoopPipe.exitedTowards).map { it!!.turnClockwise() }
-                val floodKernels = probeDirs
-                    .mapNotNull { dir -> neighbourOrNull(currentLoopPipe.x, currentLoopPipe.y, dir) }
-                    .filter { it.isUnvisited() }
-
-                if (floodKernels.isEmpty()) return@forEach
-
-                println("going from $currentLoopPipe towards $probeDirs, checking $floodKernels")
-
-                val queueToCheck = floodKernels.toMutableList()
-                while (queueToCheck.isNotEmpty()) {
-                    val checking = queueToCheck.removeFirst()
-                    if (!checking.isUnvisited()) continue
-                    val (x, y) = checking
-                    println("visiting [$x,$y]")
-                    checking.visitedFrom = Direction.Top
-                    totalEnclosedTiles.add(checking)
-                    queueToCheck.addAll(unvisitedNeighbours(x, y))
-                }
-            }
-            return totalEnclosedTiles.also { it.forEach { println(it) } }
-        }
-
-        private fun unvisitedNeighbours(x: Int, y: Int): List<Pipe> = Direction.entries
-            .mapNotNull { dir -> neighbourOrNull(x, y, dir) }
-            .filter { neighbour -> neighbour.isUnvisited() }
-
-        override fun toString(): String = tiles.joinToString("\n") { row -> row.joinToString(" ") { "[$it]" } }
+        override fun toString(): String = tiles
+            .joinToString("\n") { row -> row.joinToString(" ") { "[$it]" } }
 
         fun toString(overlays: List<Pair<Char, List<Pipe>>>): String {
             val rep = input.lines().map { it.toCharArray() }.toTypedArray()
@@ -120,14 +160,25 @@ open class Day10a(inputFileName: String) : Day(inputFileName) {
         }
     }
 
+    enum class Neighbour(val x: Int, val y: Int) {
+        N(0, -1),
+        NE(1, -1),
+        E(1, 0),
+        SE(1, 1),
+        S(0, 1),
+        SW(-1, 1),
+        W(-1, 0),
+        NW(-1, -1)
+    }
+
     data class Pipe(
         val x: Int,
         val y: Int,
         val connectedDirections: Set<Direction>,
-        var visitedFrom: Direction? = null,
+        var enteredFrom: Direction? = null,
         var exitedTowards: Direction? = null
     ) {
-        fun isUnvisited(): Boolean = visitedFrom == null
+        fun isUnvisited(): Boolean = enteredFrom == null
         fun isConnectedTo(dir: Direction): Boolean = dir.connectsTo() in connectedDirections
     }
 
@@ -165,11 +216,15 @@ class Day10b(inputFileName: String) : Day10a(inputFileName) {
 
         // println(board)
         val pipeLoop = board.findPipeLoop()
-        println(board.toString(listOf('>' to pipeLoop.toList())))
+        // println(board.toString(listOf('>' to pipeLoop.toList())))
 
-        // println(pipeLoop)
-        val enclosedTiles = board.findEnclosedTiles(pipeLoop)
-        println(board.toString(listOf('>' to pipeLoop.toList(), '@' to enclosedTiles.toList())))
+        val enclosedClockwise = board.isEnclosedSideClockwise(pipeLoop)
+        println("enclosedClockwise: $enclosedClockwise")
+        val enclosedTiles = board.findEnclosedTiles(pipeLoop, enclosedClockwise)
+        val others = board.tiles.flatten() subtract (enclosedTiles union pipeLoop)
+        println(board.toString(listOf('>' to pipeLoop.toList(), '@' to enclosedTiles.toList(), 'X' to others.toList())))
+
+        println(enclosedTiles.size)
         return enclosedTiles.size
     }
 }
