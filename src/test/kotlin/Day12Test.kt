@@ -5,7 +5,11 @@ class Day12aTest {
     @Test
     fun `findValidVariants matches more than one`() {
         val day12a = Day12a("input/12.test.txt")
-        val variant = day12a.findValidVariants(".??..??...?##." to listOf(1, 1, 3))
+        val patternToSprings = ".??..??...?##." to listOf(1, 1, 3)
+        val variant = day12a.findValidVariants(
+            patternToSprings,
+            day12a.buildVariantGenerator(listOf(patternToSprings))
+        )
 
         assertEquals(4, variant.count())
     }

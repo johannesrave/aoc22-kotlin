@@ -14,37 +14,48 @@ open class Day12a(inputFileName: String) : Day(inputFileName) {
         val patternsToSprings = parsePatternsToSprings(input)
         patternsToSprings.forEach { println(it) }
 
-        val maxWildcards = input.lines().maxOf { it.count { c -> c == '?' } }
-        val permutations = buildPermutations('.', '#', maxWildcards)
+        val variantGenerator = buildVariantGenerator(patternsToSprings)
 
-        val results = patternsToSprings.map { findValidVariants(it).size }
+        val results = patternsToSprings.map { findValidVariants(it, variantGenerator).size }
 
         return results.sum()
     }
 
-    private fun buildPermutations(c: Char, c1: Char, maxWildcards: Int) {
-        CharArray(maxWildcards) { c }
+    fun buildVariantGenerator(patternsToSprings: List<Pair<String, List<Int>>>): List<String> {
+        val maxWildcards = patternsToSprings.maxOf { (pattern) -> pattern.count { c -> c == '?' } }
+        val numberOfVariants = (2.0).pow(maxWildcards).toInt()
+
+        val variantGenerator = (0..numberOfVariants)
+            .map { number ->
+                number.toString(2).padStart(maxWildcards, '0')
+                    .replace('0', '.')
+                    .replace('1', '#')
+                    .reversed()
+            }
+        return variantGenerator
     }
 
-    fun findValidVariants(patternToSprings: Pair<String, List<Int>>): Collection<String> {
-        val (pattern, springs) = patternToSprings
+    fun findValidVariants(
+        patternToSprings: Pair<String, List<Int>>,
+        variantGenerator: List<String>
+    ): Collection<String> {
+        val (springPattern, springs) = patternToSprings
         val regex = ("""^[.?]*[#?]{${springs.first()}}""" +
                 springs.drop(1).joinToString("") { """[.?]+[#?]{$it}""" }
                 + """[.?]*$""").toRegex()
 
-        val numberOfWildcards = pattern.count { c -> c == '?' }
+        val numberOfWildcards = springPattern.count { c -> c == '?' }
         val numberOfVariants = (2.0).pow(numberOfWildcards).toInt()
 
         val variants = mutableSetOf<String>()
-        (0..numberOfVariants).map { number ->
-            val chars = number.toString(2).padStart(numberOfWildcards, '0')
-                .replace('0', '.')
-                .replace('1', '#')
+        val iterator = variantGenerator.iterator()
+        repeat(numberOfVariants) {
+            val chars = iterator.next()
+                .take(numberOfWildcards)
                 .iterator()
-
-            val variant = pattern.map { if (it == '?') chars.next() else it }.joinToString("")
-
-            //println(variant)
+            val sb = StringBuilder()
+            springPattern.forEach { c -> (if (c == '?') chars.next() else c).let { sb.append(it) } }
+            val variant = sb.toString()
 
             if (regex.containsMatchIn(variant)) variants.add(variant)
         }
