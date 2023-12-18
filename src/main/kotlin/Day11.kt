@@ -11,7 +11,7 @@ fun main() {
 }
 
 open class Day11a(inputFileName: String) : Day(inputFileName) {
-    open fun solve(): Int {
+    open fun solve(): Long {
         val cosmos = parseCosmos(input)
         val expandedCosmos = expand(cosmos)
 
@@ -50,14 +50,14 @@ open class Day11a(inputFileName: String) : Day(inputFileName) {
         return expandedCosmos.map { it.toCharArray() }.toTypedArray()
     }
 
-    private fun parseCosmos(input: String): Array<CharArray> = input.lines().map { it.toCharArray() }.toTypedArray()
+    fun parseCosmos(input: String): Array<CharArray> = input.lines().map { it.toCharArray() }.toTypedArray()
 
-    data class Galaxy(val x: Int, val y: Int) {
+    data class Galaxy(val x: Long, val y: Long) {
         companion object {
             fun setFrom(expandedCosmos: Array<CharArray>): Set<Galaxy> {
                 return expandedCosmos.flatMapIndexed { y, row ->
                     row.toList().mapIndexedNotNull { x, char ->
-                        if (char == '#') Galaxy(x, y)
+                        if (char == '#') Galaxy(x.toLong(), y.toLong())
                         else null
                     }
                 }.toSet()
@@ -67,7 +67,58 @@ open class Day11a(inputFileName: String) : Day(inputFileName) {
 }
 
 class Day11b(inputFileName: String) : Day11a(inputFileName) {
-    override fun solve(): Int {
-        return -1
+    override fun solve(): Long {
+        val cosmos = parseCosmos(input)
+        val expandedCosmos = expandReallyFast(cosmos)
+
+        expandedCosmos.onEach { println(it) }
+
+        val galaxies = Galaxy.setFrom(expandedCosmos)
+        val pairedGalaxies = pairUpGalaxies(galaxies)
+
+        val distances = getExpandedDistances(pairedGalaxies, expandedCosmos, 1000000)
+
+        return distances.sum()
+    }
+
+    fun pairUpGalaxies(galaxies: Set<Galaxy>) = galaxies.flatMapIndexed { i, gal ->
+        galaxies.drop(i + 1).map { other -> gal to other }
+    }.toSet()
+
+    fun getExpandedDistances(
+        pairedGalaxies: Set<Pair<Galaxy, Galaxy>>,
+        expandedCosmos: Array<CharArray>,
+        expansionFactor: Long
+    ) = pairedGalaxies.map { (galaxy, other) ->
+        val xs = listOf(galaxy.x, other.x).sorted()
+        val horizontalPath = ((xs.first() + 1)..xs.last())
+            .map { x -> expandedCosmos[galaxy.y.toInt()][x.toInt()] }
+
+        val ys = listOf(galaxy.y, other.y).sorted()
+        val verticalPath = ((ys.first() + 1)..ys.last())
+            .map { y -> expandedCosmos[y.toInt()][galaxy.x.toInt()] }
+
+        val path = horizontalPath + verticalPath
+
+        println("path between $galaxy and $other:")
+        println(path)
+        val expanses = path.count { it == 'X' } * expansionFactor
+        val shorts = path.count { it != 'X' }
+        println("expanses: $expanses")
+        println("shorts: $shorts")
+        expanses + shorts
+    }
+
+    fun expandReallyFast(cosmos: Array<CharArray>): Array<CharArray> {
+
+        val expandedCosmos = cosmos.map { row ->
+            if (row.all { it == '.' }) CharArray(row.size) { 'X' } else row
+        }.toTypedArray()
+
+        repeat(cosmos[0].count()) { x ->
+            if(cosmos.all { it[x] == '.' }) expandedCosmos.forEach { it[x] = 'X' }
+        }
+
+        return expandedCosmos
     }
 }
