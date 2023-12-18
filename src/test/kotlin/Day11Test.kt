@@ -10,7 +10,7 @@ class Day11aTest {
 
     @Test
     fun solveInput() {
-        assertEquals(-1, Day11a("input/11.txt").solve())
+        assertEquals(10313550, Day11a("input/11.txt").solve())
     }
 }
 
