@@ -11,46 +11,40 @@ fun main() {
 }
 
 open class Day10a(inputFileName: String) : Day(inputFileName) {
-    // i assume this is mostly about parsing into a great data structure, and will be trivial after.
-    // since it is a board, i'll initially use a two-dimensional array and enums for the pipes.
-    // afterward i'll traverse it starting from S, building a list. the additional pipes shouldn't be a problem.
-
     open fun solve(): Int {
         val board = Board.from(input)
-        // println(board)
         val pipeLoop = board.findPipeLoop()
-
         println(board.toString(listOf('@' to pipeLoop)))
-        // println(pipeLoop)
         return pipeLoop.size / 2
     }
 
     data class Board(val tiles: Array<Array<Pipe>>, val input: String) {
         fun findPipeLoop(): List<Pipe> {
-            var currentTile: Pipe = findStart()
+            var currentPipe: Pipe = findStart()
             val loop = mutableListOf<Pipe>()
             while (true) {
-                loop.add(currentTile)
-                currentTile = moveToConnectedNeighbour(currentTile) ?: break
+                loop.add(currentPipe)
+                currentPipe = moveToConnectedPipe(currentPipe) ?: break
             }
             return loop
         }
 
         fun isEnclosedSideClockwise(pipeLoop: List<Pipe>): Boolean {
             val loopTiles = pipeLoop.toSet()
-            pipeLoop.forEach { pipe ->
-                val dir = pipe.exitedTowards!!.turnClockwise()
+            loop@ for (pipe in pipeLoop) {
+                val dir = pipe.exitedTowards?.turnClockwise()
+                    ?: throw IllegalStateException("Something went wrong with $pipe")
                 var tileToCheck = neighbourOrNull(pipe.x, pipe.y, dir)
                 while (true) {
                     if (tileToCheck == null) return false
-                    if (tileToCheck in loopTiles) return@forEach
+                    if (tileToCheck in loopTiles) continue@loop
                     tileToCheck = neighbourOrNull(tileToCheck.x, tileToCheck.y, dir)
                 }
             }
             return true
         }
 
-        fun findEnclosedTiles(pipeLoop: List<Pipe>, enclosedClockwise: Boolean): Set<Pipe> {
+        fun findEnclosedTiles(pipeLoop: List<Pipe>): Set<Pipe> {
             val totalEnclosedTiles = mutableSetOf<Pipe>()
             pipeLoop.forEach { pipe ->
                 val floodKernels = when (pipe.enteredFrom!! to pipe.exitedTowards!!) {
@@ -75,19 +69,6 @@ open class Day10a(inputFileName: String) : Day(inputFileName) {
                     .filter { it.isUnvisited() }
                     .also { if (it.isEmpty()) return@forEach }
 
-
-//                val floodKernels2 =
-//                    listOf(pipe.enteredFrom, pipe.exitedTowards).also { println(it) }
-//                        .mapNotNull {
-//                            if (enclosedClockwise) it?.turnClockwise() else it?.turnCounterClockwise()
-//                        }.also { println(it) }
-//                        .mapNotNull { dir -> neighbourOrNull(pipe.x, pipe.y, dir).also { println(dir) } }
-//                        .filter { it.isUnvisited() }
-//                        .toSet()
-//                        .also { if (it.isEmpty()) return@forEach }
-
-                println("going from $pipe, begin flooding at ${floodKernels.joinToString { (x, y) -> "[$x, $y]" }}")
-
                 val queueToCheck = floodKernels.toMutableList()
                 while (queueToCheck.isNotEmpty()) {
                     val checking = queueToCheck.removeFirst()
@@ -100,13 +81,12 @@ open class Day10a(inputFileName: String) : Day(inputFileName) {
                 }
             }
             return totalEnclosedTiles
-            // .onEach { println(it) }
         }
 
         private fun findStart(): Pipe =
             tiles.mapNotNull { row -> row.find { pipe -> pipe.connectedDirections.size == 4 } }.single()
 
-        private fun moveToConnectedNeighbour(pipe: Pipe): Pipe? {
+        private fun moveToConnectedPipe(pipe: Pipe): Pipe? {
             val (x, y) = pipe
             val (dir, connectedNeighbour) = pipe.connectedDirections
                 .filter { it != pipe.enteredFrom }
@@ -141,7 +121,7 @@ open class Day10a(inputFileName: String) : Day(inputFileName) {
         fun toString(overlays: List<Pair<Char, List<Pipe>>>): String {
             val rep = input.lines().map { it.toCharArray() }.toTypedArray()
             overlays.forEach { (c, pipes) ->
-                pipes.forEach { (x, y, dirs, from, exited) ->
+                pipes.forEach { (x, y, dirs, _, exited) ->
                     if (c == '>') {
                         val char = if (dirs.size > 2) 'S' else
                             when (exited!!) {
@@ -180,6 +160,9 @@ open class Day10a(inputFileName: String) : Day(inputFileName) {
     ) {
         fun isUnvisited(): Boolean = enteredFrom == null
         fun isConnectedTo(dir: Direction): Boolean = dir.connectsTo() in connectedDirections
+
+        fun isConnectedTo(other: Pipe): Boolean = connectedDirections.map { it.connectsTo() }
+            .any { it in other.connectedDirections }
     }
 
     enum class Direction(val x: Int, val y: Int) {
@@ -190,7 +173,6 @@ open class Day10a(inputFileName: String) : Day(inputFileName) {
 
         fun connectsTo() = turnBy(2)
         fun turnClockwise() = turnBy(1)
-        fun turnCounterClockwise() = turnBy(3)
 
         private fun turnBy(n: Int) = entries[(this.ordinal + n) % entries.size]
 
@@ -214,17 +196,13 @@ class Day10b(inputFileName: String) : Day10a(inputFileName) {
     override fun solve(): Int {
         val board = Board.from(input)
 
-        // println(board)
         val pipeLoop = board.findPipeLoop()
-        // println(board.toString(listOf('>' to pipeLoop.toList())))
 
         val enclosedClockwise = board.isEnclosedSideClockwise(pipeLoop)
-        println("enclosedClockwise: $enclosedClockwise")
-        val enclosedTiles = board.findEnclosedTiles(pipeLoop, enclosedClockwise)
+        val enclosedTiles = board.findEnclosedTiles(pipeLoop)
         val others = board.tiles.flatten() subtract (enclosedTiles union pipeLoop)
         println(board.toString(listOf('>' to pipeLoop.toList(), '@' to enclosedTiles.toList(), 'X' to others.toList())))
 
-        println(enclosedTiles.size)
         return enclosedTiles.size
     }
 }
