@@ -37,7 +37,7 @@ class Day13aTest {
 class Day13bTest {
     @Test
     fun solveTestInput() {
-        assertEquals(0, Day13b("input/13.test.txt").solve())
+        assertEquals(400, Day13b("input/13.test.txt").solve())
     }
 
     @Test
