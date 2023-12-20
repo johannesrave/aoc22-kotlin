@@ -62,24 +62,15 @@ class Day13b(inputFileName: String) : Day13a(inputFileName) {
         return boards.sumOf { calculateScoreWithSmudge(it) }.also { println(it) }
     }
 
-    private fun calculateScoreWithSmudge(board: Array<CharArray>, smudges: Int = 1): Int {
+    private fun calculateScoreWithSmudge(board: Array<CharArray>): Int {
         val transposedBoard = board.transpose()
-        println("board:")
-        board.onEach { println(it) }
-        println("transposedBoard:")
-        transposedBoard.onEach { println(it) }
-        val horizontalCandidates = findCandidatesForSymmetryWithSmudge(transposedBoard)
-        println("horizontalCandidates: $horizontalCandidates")
 
-        testForSymmetryAtIndicesWithSmudge(horizontalCandidates, transposedBoard).also { println(it) }
-            ?.let { return it }
+        val horizontalCandidates = findCandidatesForSymmetryWithSmudge(transposedBoard)
+        findSymmetricIndexWithSmudge(horizontalCandidates, transposedBoard)?.let { return it }
 
         val verticalCandidates = findCandidatesForSymmetryWithSmudge(board)
-        println("verticalCandidates: $verticalCandidates")
+        findSymmetricIndexWithSmudge(verticalCandidates, board)?.let { return it * 100 }
 
-        testForSymmetryAtIndicesWithSmudge(verticalCandidates, board)
-            .also { println(it) }
-            ?.let { return it * 100 }
         throw IllegalArgumentException()
     }
 
@@ -90,29 +81,24 @@ class Day13b(inputFileName: String) : Day13a(inputFileName) {
             foundSmudges <= allowedSmudges
         }
 
-    private fun testForSymmetryAtIndicesWithSmudge(
+    private fun findSymmetricIndexWithSmudge(
         indices: List<Int>,
         board: Array<CharArray>,
         allowedSmudges: Int = 1
-    ): Int? = indices.find { i ->
-        val firstHalf = board.copyOfRange(0, i + 1).reversed()
-        val secondHalf = board.copyOfRange(i + 1, board.lastIndex + 1)
-        val zippedHalves = firstHalf zip secondHalf
+    ): Int? =
+        indices.find { i ->
+            val firstHalf = board.copyOfRange(0, i + 1).reversed()
+            val secondHalf = board.copyOfRange(i + 1, board.lastIndex + 1)
+            val zippedHalves = firstHalf zip secondHalf
 
-        var foundSmudges = 0
-        zippedHalves.forEach { (firstRow, secondRow) ->
-            println("${firstRow.joinToString("")} | ${secondRow.joinToString("")}")
-            firstRow.indices.forEach { x ->
-                if (firstRow[x] != secondRow[x]) {
-                    ++foundSmudges
-                    println(firstRow)
-                    println(foundSmudges)
+            val foundSmudges = zippedHalves
+                .sumOf { (firstRow, secondRow) ->
+                    println("${firstRow.joinToString("")} | ${secondRow.joinToString("")}")
+                    firstRow.indices.count { x -> (firstRow[x] != secondRow[x]) }
                 }
-            }
-        }
 
-        foundSmudges == allowedSmudges
-    }?.plus(1)
+            foundSmudges == allowedSmudges
+        }?.plus(1)
 }
 
 fun Array<CharArray>.transpose(): Array<CharArray> = this.first()
