@@ -1,5 +1,6 @@
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import kotlin.test.assertTrue
 
 class Day13aTest {
     @Test
@@ -9,6 +10,7 @@ class Day13aTest {
 
     @Test
     fun solveInput() {
+        assertTrue(39526 > Day13a("input/13.txt").solve())
         assertEquals(0, Day13a("input/13.txt").solve())
     }
 }
