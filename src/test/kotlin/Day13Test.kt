@@ -42,6 +42,6 @@ class Day13bTest {
 
     @Test
     fun solveInput() {
-        assertEquals(0, Day13b("input/13.txt").solve())
+        assertEquals(35554, Day13b("input/13.txt").solve())
     }
 }
