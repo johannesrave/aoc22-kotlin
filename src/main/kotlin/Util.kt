@@ -25,4 +25,8 @@ fun List<Long>.findLCM(): Long {
 fun Array<CharArray>.transpose(): Array<CharArray> = this.first()
     .mapIndexed { x, _ -> this.map { it[x] }.toCharArray() }.toTypedArray()
 
+fun Array<CharArray>.rotateCW(): Array<CharArray> = this.transpose().map { it.reversedArray() }.toTypedArray()
+fun Array<CharArray>.rotateCCW(): Array<CharArray> = this.transpose().reversedArray()
+
+
 fun <T> List<List<T>>.transpose(): List<List<T>> = List(this.first().size) { x -> this.map { it[x] } }
