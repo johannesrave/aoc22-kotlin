@@ -9,61 +9,33 @@ fun main() {
 }
 
 open class Day14a(inputFileName: String) : Day(inputFileName) {
-    open fun solve(): Int {
-        val rocks = parseRocks(input)
-            .also { it.forEach { println(it) } }
-            .also { println() }
-            .transpose().map { it.reversed().toCharArray() }
-        println()
+    open fun solve(): Int = parseRocks(input)
+        .transpose()
+        .map { it.reversed().toCharArray() }
+        .map { row -> gravityOrderSegments(row) }.toTypedArray()
+        .transpose()
+        .mapIndexed { i, row -> (i + 1) * row.count { c -> c == 'O' } }.sum()
 
-        return rocks.map { row ->
-            gravityOrder(row)
-        }.toTypedArray()
-            .transpose()
-            .also { it.forEach { println(it) } }
-            .also { println() }
-            .reversed()
-            .also { it.forEach { println(it) } }
-            .also { println() }
-            .mapIndexed { i, row -> (i + 1) * row.count { c -> c == 'O' } }.sum()
-    }
-
-    private fun gravityOrder(row: CharArray, exc: Char = '#'): CharArray {
-        val ranges = findContinuousRanges(row, exc)
-        for ((start, end) in ranges) {
+    private fun gravityOrderSegments(row: CharArray, exc: Char = '#'): CharArray {
+        val segments = findContiguousSegments(row, exc)
+        for ((start, end) in segments) {
             row.copyOfRange(start, end).sortedArray().copyInto(row, start)
         }
         return row
     }
 
-    private fun findContinuousRanges(row: CharArray, exc: Char): MutableSet<Pair<Int, Int>> {
-        val ranges = mutableSetOf<Pair<Int, Int>>()
+    private fun findContiguousSegments(row: CharArray, exc: Char): MutableSet<Pair<Int, Int>> {
+        val segments = mutableSetOf<Pair<Int, Int>>()
         var begin: Int? = null
-        row.forEachIndexed { i, c ->
+        for ((i, c) in row.withIndex()) {
             if (c != exc && begin == null) begin = i
             if (c == exc && begin != null) {
-                ranges.add(begin!! to i)
+                segments.add(begin to i)
                 begin = null
             }
         }
-        if (begin != null) ranges.add(begin!! to row.size)
-        return ranges
-    }
-
-    class GravityOrdering : Comparator<Char> {
-        override fun compare(a: Char?, b: Char?): Int {
-            val roundRock = 'O'
-            val squareRock = '#'
-            val sand = '.'
-            val result = when {
-                a == roundRock && b == sand -> 1
-                a == sand && b == roundRock -> -1
-                else -> 0
-            }
-                .also { println("$b $a : $it") }
-            return result
-        }
-
+        if (begin != null) segments.add(begin to row.size)
+        return segments
     }
 
     private fun parseRocks(input: String): Array<CharArray> = input.lines().map { it.toCharArray() }.toTypedArray()
