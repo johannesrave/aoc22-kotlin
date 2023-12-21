@@ -15,6 +15,14 @@ open class Day14a(inputFileName: String) : Day(inputFileName) {
         .rotateCCW()
         .calculateLoad()
 
+    private fun parseRocks(input: String): Array<CharArray> = input.lines().map { it.toCharArray() }.toTypedArray()
+
+    fun Array<CharArray>.tiltToRight(): Array<CharArray> = this.map { row -> gravityOrderSegments(row) }.toTypedArray()
+
+    fun Array<CharArray>.calculateLoad(): Int = this
+        .reversed()
+        .mapIndexed { i, row -> (i + 1) * row.count { c -> c == 'O' } }
+        .sum()
 
     private fun gravityOrderSegments(row: CharArray, exc: Char = '#'): CharArray {
         val segments = findContiguousSegments(row, exc)
@@ -37,15 +45,6 @@ open class Day14a(inputFileName: String) : Day(inputFileName) {
         if (begin != null) segments.add(begin to row.size)
         return segments
     }
-
-    fun Array<CharArray>.tiltToRight(): Array<CharArray> = this.map { row -> gravityOrderSegments(row) }.toTypedArray()
-
-    fun Array<CharArray>.calculateLoad(): Int = this
-        .reversed()
-        .mapIndexed { i, row -> (i + 1) * row.count { c -> c == 'O' } }
-        .sum()
-
-    private fun parseRocks(input: String): Array<CharArray> = input.lines().map { it.toCharArray() }.toTypedArray()
 }
 
 class Day14b(inputFileName: String) : Day14a(inputFileName) {
