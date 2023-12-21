@@ -100,6 +100,3 @@ class Day13b(inputFileName: String) : Day13a(inputFileName) {
             foundSmudges == allowedSmudges
         }?.plus(1)
 }
-
-fun Array<CharArray>.transpose(): Array<CharArray> = this.first()
-    .mapIndexed { x, _ -> this.map { it[x] }.toCharArray() }.toTypedArray()
