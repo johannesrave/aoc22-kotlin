@@ -15,7 +15,7 @@ open class Day14a(inputFileName: String) : Day(inputFileName) {
         .rotateCCW()
         .calculateLoad()
 
-    private fun parseRocks(input: String): Array<CharArray> = input.lines().map { it.toCharArray() }.toTypedArray()
+    protected fun parseRocks(input: String): Array<CharArray> = input.lines().map { it.toCharArray() }.toTypedArray()
 
     fun Array<CharArray>.tiltToRight(): Array<CharArray> = this.map { row -> gravityOrderSegments(row) }.toTypedArray()
 
@@ -48,7 +48,43 @@ open class Day14a(inputFileName: String) : Day(inputFileName) {
 }
 
 class Day14b(inputFileName: String) : Day14a(inputFileName) {
-    override fun solve(): Int {
-        return -1
+    override fun solve(): Int = parseRocks(input)
+        .let cycles@{
+            var board = it
+            val boardStates = mutableMapOf(board.hash() to (mutableListOf(0) to board.calculateLoad()))
+
+            val upperBound = 1_000_000_000
+            // this actually terminates far earlier than on upperBound - for the "real" input it's around 115
+            for (i in 1..upperBound) {
+                board = board.cycle()
+                val hash = board.hash()
+                if (hash in boardStates) {
+                    val (occurrencesOfSameState) = boardStates[hash]!!
+                    occurrencesOfSameState.add(i)
+
+                    val (firstOccurrence) = occurrencesOfSameState
+                    val period = i - firstOccurrence
+                    val nonPeriodicPart = firstOccurrence - 1
+                    val offset = (upperBound - nonPeriodicPart) % period
+                    val occurrenceWithOffset = nonPeriodicPart + offset
+                    (boardStates.values.find { (occurrenceList, _) -> occurrenceWithOffset in occurrenceList }
+                        ?.let { (_, load) -> return load }
+                        ?: throw IllegalStateException())
+                } else {
+                    boardStates[hash] = mutableListOf(i) to board.calculateLoad()
+                }
+            }
+            board
+        }
+        .calculateLoad()
+
+    fun Array<CharArray>.cycle(): Array<CharArray> {
+        var board = this
+        for (i in 0..<4) {
+            board = board.rotateCW().tiltToRight()
+        }
+        return board
     }
+
+    fun Array<CharArray>.hash(): String = this.joinToString("|") { row -> row.joinToString("") }
 }
