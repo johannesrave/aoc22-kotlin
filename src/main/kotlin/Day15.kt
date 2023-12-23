@@ -9,9 +9,11 @@ fun main() {
 }
 
 open class Day15a(inputFileName: String) : Day(inputFileName) {
-    open fun solve(): Int {
-        return -1
-    }
+    open fun solve(): Int = parseSteps(input).sumOf { step -> step.hash() }
+
+    private fun String.hash() = fold(0) { value, c -> ((value + c.code) * 17) % 256 }
+
+    private fun parseSteps(input: String): List<String> = input.split(",")
 }
 
 class Day15b(inputFileName: String) : Day15a(inputFileName) {
