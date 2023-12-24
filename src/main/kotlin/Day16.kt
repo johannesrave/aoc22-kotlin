@@ -12,15 +12,17 @@ fun main() {
 open class Day16a(inputFileName: String) : Day(inputFileName) {
     open fun solve(): Int {
         val board = input.lines().map { it.toCharArray() }.toTypedArray()
-        val energizedBoard = Array(board.size) { Array<MutableSet<Direction>>(board.first().size) { mutableSetOf() } }
-        val beams = mutableListOf(Beam(-1, 0, Right))
+        return calculateEnergizedTilesStartingAt(board, Beam(-1, 0, Right))
+    }
 
-//        for (i in 0..30) {
+    protected fun calculateEnergizedTilesStartingAt(board: Array<CharArray>, beam: Beam): Int {
+        val energizedBoard = Array(board.size) { Array<MutableSet<Direction>>(board.first().size) { mutableSetOf() } }
+        val beams = mutableListOf(beam)
+
         while (beams.isNotEmpty()) {
-            val beam = beams.removeFirst()
-            val newBeams = beam.moveAndSplit(board, energizedBoard)
+            val currentBeam = beams.removeFirst()
+            val newBeams = currentBeam.moveAndSplit(board, energizedBoard)
             beams.addAll(newBeams)
-            println(beams)
         }
         return energizedBoard.sumOf { row -> row.count { energized -> energized.isNotEmpty() } }
     }
@@ -82,6 +84,16 @@ open class Day16a(inputFileName: String) : Day(inputFileName) {
 
 class Day16b(inputFileName: String) : Day16a(inputFileName) {
     override fun solve(): Int {
-        return -1
+        val board = input.lines().map { it.toCharArray() }.toTypedArray()
+        val energizations = mutableListOf<Int>()
+        for (x in board.first().indices) {
+            energizations += calculateEnergizedTilesStartingAt(board, Beam(x, -1, Down))
+            energizations += calculateEnergizedTilesStartingAt(board, Beam(x, board.size, Up))
+        }
+        for (y in board.indices) {
+            energizations += calculateEnergizedTilesStartingAt(board, Beam(-1, y, Right))
+            energizations += calculateEnergizedTilesStartingAt(board, Beam(board.first().size, y, Left))
+        }
+        return energizations.max()
     }
 }

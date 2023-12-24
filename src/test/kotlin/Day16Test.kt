@@ -16,11 +16,11 @@ class Day16aTest {
 class Day16bTest {
     @Test
     fun solveTestInput() {
-        assertEquals(0, Day16b("input/16.test.txt").solve())
+        assertEquals(51, Day16b("input/16.test.txt").solve())
     }
 
     @Test
     fun solveInput() {
-        assertEquals(0, Day16b("input/16.txt").solve())
+        assertEquals(8143, Day16b("input/16.txt").solve())
     }
 }
