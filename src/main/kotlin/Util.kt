@@ -29,6 +29,6 @@ fun Array<CharArray>.transpose(): Array<CharArray> = this.first()
 
 fun Array<CharArray>.rotateCW(): Array<CharArray> = this.transpose().map { it.reversedArray() }.toTypedArray()
 fun Array<CharArray>.rotateCCW(): Array<CharArray> = this.transpose().reversedArray()
+fun Array<CharArray>.tileExists(x: Int, y: Int) = this.getOrNull(y)?.getOrNull(x) != null
 
-
-fun <T> List<List<T>>.transpose(): List<List<T>> = List(this.first().size) { x -> this.map { it[x] } }
+fun Array<IntArray>.tileExists(x: Int, y: Int) = this.getOrNull(y)?.getOrNull(x) != null
