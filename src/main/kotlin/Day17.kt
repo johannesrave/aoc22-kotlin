@@ -17,17 +17,36 @@ open class Day17a(inputFileName: String) : Day(inputFileName) {
         val minimalHeatLoss = getMinimalHeatLossBoard(board)
 
         val pathsToWalk = mutableListOf(
-            Path(mutableListOf(Step(Pos(0, 0), Down, 0)), 0),
-            Path(mutableListOf(Step(Pos(0, 0), Right, 0)), 0),
+            Path(mutableListOf(Step(Pos(0, 0), Down, 0, 0)), 0),
+            Path(mutableListOf(Step(Pos(0, 0), Right, 0, 0)), 0),
         )
+
+        val finishedPaths = mutableListOf<Path>()
+        val lastPos = Pos(board.first().lastIndex, board.lastIndex)
 
         while (pathsToWalk.isNotEmpty()) {
             val currentPath = pathsToWalk.removeFirst()
+            if (currentPath.steps.last().pos == lastPos) {
+                finishedPaths.add(currentPath)
+                continue
+            }
             val newPaths = currentPath.walkAndMarkHeatLoss(board, minimalHeatLoss)
             pathsToWalk += newPaths
         }
-        minimalHeatLoss.onEach { println(it.joinToString { num -> num.toString().padStart(2) }) }
+        minimalHeatLoss.onEach { println(it.joinToString { num -> num.toString().padStart(3) }) }
         println()
+        finishedPaths.map { path ->
+            path.steps.withIndex().joinToString(" ") { item ->
+                val (i, step) = item
+                val (pos, dir, loss) = step
+                val heatLossUpToStep = path.steps.take(i + 1).sumOf { it.heatLoss }
+                "${dir.toString().padStart(5)} -> [${pos.x},${pos.y}], ~${heatLossUpToStep.toString().padStart(3)} |"
+            }.also {
+                println("${path.totalHeatLoss}: $it")
+                println(path.printPath(board))
+                println(println())
+            }
+        }
 
         return minimalHeatLoss.last().last()
     }
@@ -40,27 +59,46 @@ open class Day17a(inputFileName: String) : Day(inputFileName) {
                 .filter { dir ->
                     val newHeatLoss = board[pos.y + dir.y][pos.x + dir.x]
                     (totalHeatLoss + newHeatLoss) < minimalHeatLoss[pos.y + dir.y][pos.x + dir.x]
-                }.map { dir ->
+                }
+                .map { dir ->
                     val newPos = Pos(pos.x + dir.x, pos.y + dir.y)
                     val newHeatLoss = board[pos.y + dir.y][pos.x + dir.x]
                     minimalHeatLoss[newPos.y][newPos.x] = totalHeatLoss + newHeatLoss
-                    Step(newPos, dir, newHeatLoss)
+                    Step(newPos, dir, newHeatLoss, totalHeatLoss + newHeatLoss)
                 }.map {
                     this.copy(steps = (steps + it).toMutableList(), totalHeatLoss = totalHeatLoss + it.heatLoss)
                 }
         }
 
-        private fun getValidDirs(step: Step, board: Array<IntArray>): List<Direction> {
+        private fun getValidDirs(step: Step, board: Array<IntArray>): Collection<Direction> {
             val (pos, currentDirection) = step
-            val mustTurn = steps.takeLast(3).all { it.enteredGoing != currentDirection }
+            val mustTurn = steps.takeLast(3).all { it.enteredGoing == currentDirection }
             return when {
                 mustTurn -> currentDirection.turnDirections()
                 else -> currentDirection.allDirections()
-            }.filter { board.tileExists(pos.x + it.x, pos.y + it.y) }
+            }
+                .filter { board.tileExists(pos.x + it.x, pos.y + it.y) }
+        }
+
+        fun printPath(board: Array<IntArray>): String {
+            val printBuffer = board.map { it.joinToString("").toCharArray() }.toTypedArray()
+            this.steps.forEach { (pos, enteredGoing, heatLoss) ->
+                printBuffer[pos.y][pos.x] = when (enteredGoing) {
+                    //@formatter:off
+                    Up ->    '^'
+                    Right -> '>'
+                    Down ->  'v'
+                    Left ->  '<'
+                    //@formatter:on
+                }
+            }
+            return printBuffer.withIndex().joinToString("\n") { (y, row) ->
+                row.withIndex().joinToString("") { (x, char) -> "$char" }
+            }
         }
     }
 
-    data class Step(val pos: Pos, val enteredGoing: Direction, val heatLoss: Int)
+    data class Step(val pos: Pos, val enteredGoing: Direction, val heatLoss: Int, val totalHeatLossUpToStep: Int)
 
     enum class Direction(val x: Int, val y: Int) {
         Up(0, -1), Right(1, 0), Down(0, 1), Left(-1, 0);
@@ -76,7 +114,7 @@ open class Day17a(inputFileName: String) : Day(inputFileName) {
     }
 
     private fun getMinimalHeatLossBoard(board: Array<IntArray>) =
-        Array(board.size) { IntArray(board.first().size) { 99 } }
+        Array(board.size) { IntArray(board.first().size) { 999 } }
 }
 
 class Day17b(inputFileName: String) : Day17a(inputFileName) {
