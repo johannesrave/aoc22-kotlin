@@ -16,10 +16,13 @@ open class Day17a(inputFileName: String) : Day(inputFileName) {
         val board = input.lines().map { it.map { c -> c.toString().toInt() }.toIntArray() }.toTypedArray()
         val minimalHeatloss = getMinimalHeatLossBoard(board)
 
+        val lastPos = Pos(board[0].lastIndex, board.lastIndex)
+        val finishedPaths = mutableListOf<Step>()
         val steps = LinkedList<Step>()
-        steps.add(Step(Pos(0, 0), null, 0, 0))
+        steps.add(Step(Pos(0, 0), null, 0, 0, null))
         while (steps.isNotEmpty()) {
             val step = steps.removeFirst()
+            if (step.pos == lastPos) finishedPaths.add(step)
             val key = step.comingFrom to step.walkingStraightFor
             if (minimalHeatloss[step.pos.y][step.pos.x][key] != null
                 && minimalHeatloss[step.pos.y][step.pos.x][key]!! < step.heatloss
@@ -38,19 +41,27 @@ open class Day17a(inputFileName: String) : Day(inputFileName) {
                 .let { nextSteps -> steps.addAll(nextSteps) }
         }
 
+        finishedPaths.minBy { it.heatloss }.printPath(board)
+
         return minimalHeatloss.last().last().minOf { it.value }
     }
 
-    data class Step(val pos: Pos, val comingFrom: Direction?, val walkingStraightFor: Int, val heatloss: Int) {
+    data class Step(
+        val pos: Pos,
+        val comingFrom: Direction?,
+        val walkingStraightFor: Int,
+        val heatloss: Int,
+        val previous: Step?
+    ) {
         fun nextSteps(board: Array<IntArray>): Collection<Step> = getNextDirs(walkingStraightFor)
             .filter { dir -> hasNeighbourInDirection(pos, dir, board) }
             .map { dir ->
                 val newPos = Pos(pos.x + dir.x, pos.y + dir.y)
-                val newWalkingStraightFor = if (dir == comingFrom) walkingStraightFor + 1 else 0
+                val newWalkingStraightFor = if (dir == comingFrom) walkingStraightFor + 1 else 1
                 val additionalHeatloss = board[pos.y + dir.y][pos.x + dir.x]
                 val newHeatloss = heatloss + additionalHeatloss
 
-                Step(newPos, dir, newWalkingStraightFor, newHeatloss)
+                Step(newPos, dir, newWalkingStraightFor, newHeatloss, this)
             }
 
         private fun getNextDirs(walkingStraightFor: Int): Collection<Direction> {
@@ -64,6 +75,34 @@ open class Day17a(inputFileName: String) : Day(inputFileName) {
         private fun hasNeighbourInDirection(pos: Pos, dir: Direction, board: Array<IntArray>): Boolean {
             val (x, y) = (pos.x + dir.x) to (pos.y + dir.y)
             return board.getOrNull(y)?.getOrNull(x) != null
+        }
+
+        fun printPath(board: Array<IntArray>): String {
+            var currentStep: Step? = this
+            val path = mutableListOf<Step>()
+            while (currentStep != null) {
+                path.add(currentStep)
+                currentStep = currentStep.previous
+            }
+
+            val printBuffer = board.map { it.joinToString("").toCharArray() }.toTypedArray()
+
+            path.forEach { (pos, enteredGoing, heatLoss) ->
+                printBuffer[pos.y][pos.x] = when (enteredGoing) {
+                    //@formatter:off
+                    Direction.Up ->    '^'
+                    Direction.Right -> '>'
+                    Direction.Down ->  'v'
+                    Direction.Left ->  '<'
+                    null ->            'X'
+                    //@formatter:on
+                }
+            }
+            val string = printBuffer.withIndex().joinToString("\n") { (y, row) ->
+                row.withIndex().joinToString("") { (x, char) -> "$char" }
+            }
+            println(string)
+            return string
         }
     }
 
