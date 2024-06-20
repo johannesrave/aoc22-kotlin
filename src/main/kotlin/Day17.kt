@@ -13,41 +13,52 @@ typealias Pos = Point2D
 
 open class Day17a(inputFileName: String) : Day(inputFileName) {
     open fun solve(): Int {
-        val board = input.lines().map { it.map { c -> c.toString().toInt() }.toIntArray() }.toTypedArray()
-        val minimalHeatloss = getMinimalHeatLossBoard(board)
+        val finishedPaths = generateMinimalHeatLossBoard(::validDirectionsForPartA)
 
-        val lastPos = Pos(board[0].lastIndex, board.lastIndex)
-        val finishedPaths = mutableListOf<Step>()
-        val steps = LinkedList<Step>()
-        steps.add(Step(Pos(0, 0), null, 0, 0, null))
-        while (steps.isNotEmpty()) {
-            val step = steps.removeFirst()
-            if (step.pos == lastPos) finishedPaths.add(step)
-            val key = step.walking to step.walkingStraightFor
-            if (minimalHeatloss[step.pos.y][step.pos.x][key] != null
-                && minimalHeatloss[step.pos.y][step.pos.x][key]!! < step.heatloss
-            ) continue
-
-            step.nextSteps(board, ::validDirections)
-                .filter { (pos, comingFrom, walkingStraightFor, heatloss) ->
-                    val (x, y) = pos
-                    val _key = comingFrom to walkingStraightFor
-                    minimalHeatloss[y][x][_key] == null || minimalHeatloss[y][x][_key]!! > heatloss
-                }
-                .onEach { (pos, comingFrom, walkingStraightFor, heatloss) ->
-                    val (x, y) = pos
-                    minimalHeatloss[y][x][comingFrom to walkingStraightFor] = heatloss
-                }
-                .let { nextSteps -> steps.addAll(nextSteps) }
-        }
-
-        println(finishedPaths)
-        finishedPaths.minBy { it.heatloss }.printPath(board)
-
-        return minimalHeatloss.last().last().minOf { it.value }
+        return finishedPaths.minOf { it.heatloss }
     }
 
-    open fun validDirections(comingFrom: Direction?, walkingStraightFor: Int): Collection<Direction> = when {
+    fun generateMinimalHeatLossBoard(validDirections: (Direction?, Int) -> Collection<Direction>): MutableList<Step> {
+        val board = input.toIntBoard()
+        val heatlossBoard = getEmptyHeatLossBoard(board)
+
+        val finalTile = Pos(board[0].lastIndex, board.lastIndex)
+        val finishedPaths = mutableListOf<Step>()
+
+        val initialStep = Step(Pos(0, 0), null, 0, 0, null)
+        val stepsQueue = LinkedList<Step>()
+        stepsQueue.add(initialStep)
+
+        while (stepsQueue.isNotEmpty()) {
+            val step = stepsQueue.removeFirst()
+
+            if (step.pos == finalTile) finishedPaths.add(step)
+            if (step.heatlossIsLowerThanPreviouslyRecorded(heatlossBoard)) continue
+
+            val nextSteps = step.getNextSteps(board, validDirections)
+                .filter { nextStep -> stepFilter(nextStep, heatlossBoard) }
+                .onEach { nextStep -> recordMinimalHeatlossInBoard(heatlossBoard, nextStep) }
+
+            stepsQueue.addAll(nextSteps)
+        }
+        return finishedPaths
+    }
+
+    open fun stepFilter(step: Step, heatlossBoard: Board<MutableMap<Pair<Direction?, Int>, Int>>) =
+        step.heatlossIsLowerThanPreviouslyRecorded(heatlossBoard)
+
+    private fun recordMinimalHeatlossInBoard(heatlossBoard: Board<MutableMap<Pair<Direction?, Int>, Int>>, step: Step) {
+        heatlossBoard[step.pos.y][step.pos.x][step.walkingInDirectionFor] = step.heatloss
+    }
+
+    private fun getEmptyHeatLossBoard(board: Array<IntArray>): Board<MutableMap<Pair<Direction?, Int>, Int>> =
+        Array(board.size) {
+            Array(board.first().size) {
+                mutableMapOf()
+            }
+        }
+
+    open fun validDirectionsForPartA(comingFrom: Direction?, walkingStraightFor: Int): Collection<Direction> = when {
         comingFrom == null -> Direction.entries
         walkingStraightFor >= 3 -> comingFrom.turnDirections()
         else -> comingFrom.allDirections()
@@ -55,36 +66,37 @@ open class Day17a(inputFileName: String) : Day(inputFileName) {
 
     data class Step(
         val pos: Pos,
-        val walking: Direction?,
-        val walkingStraightFor: Int,
+        val walkingDirection: Direction?,
+        val walkingStraightForNTiles: Int,
         val heatloss: Int,
-        val previous: Step?
+        val previous: Step?,
+        val walkingInDirectionFor: Pair<Direction?, Int> = walkingDirection to walkingStraightForNTiles
     ) {
         operator fun Pos.plus(dir: Direction): Pos = Pos(x + dir.x, y + dir.y)
 
-        fun nextSteps(
+        fun getNextSteps(
             board: Array<IntArray>,
             validDirections: (Direction?, Int) -> Collection<Direction>,
-//            preFilter: (Pos, Direction, Int, Array<IntArray>) -> Boolean,
-//            postFilter: (Pos, Direction, Int, Array<IntArray>) -> Boolean,
-        ): Collection<Step> {
+        ): Collection<Step> = validDirections(walkingDirection, walkingStraightForNTiles)
+            .filter { dir -> hasNeighbourInDirection(dir, board) }
+            .map { dir ->
+                val newPos = pos + dir
+                val newWalkingStraightFor = if (dir == walkingDirection) walkingStraightForNTiles + 1 else 1
+                val additionalHeatloss = board[pos.y + dir.y][pos.x + dir.x]
+                val newHeatloss = heatloss + additionalHeatloss
 
-            return validDirections(walking, walkingStraightFor)
-                .filter { dir -> hasNeighbourInDirection(dir, board) }
-                .map { dir ->
-                    val newPos = pos + dir
-                    val newWalkingStraightFor = if (dir == walking) walkingStraightFor + 1 else 1
-                    val additionalHeatloss = board[pos.y + dir.y][pos.x + dir.x]
-                    val newHeatloss = heatloss + additionalHeatloss
-
-                    Step(newPos, dir, newWalkingStraightFor, newHeatloss, this)
-                }
-        }
+                Step(newPos, dir, newWalkingStraightFor, newHeatloss, this)
+            }
 
         private fun hasNeighbourInDirection(dir: Direction, board: Array<IntArray>): Boolean {
             val (x, y) = (pos.x + dir.x) to (pos.y + dir.y)
             return board.getOrNull(y)?.getOrNull(x) != null
         }
+
+        fun heatlossIsLowerThanPreviouslyRecorded(heatlossBoard: Board<MutableMap<Pair<Direction?, Int>, Int>>) =
+            heatlossBoard[pos.y][pos.x][walkingInDirectionFor] != null &&
+                    heatlossBoard[pos.y][pos.x][walkingInDirectionFor]!! < heatloss
+
         fun printPath(board: Array<IntArray>): String {
             var currentStep: Step? = this
             val path = mutableListOf<Step>()
@@ -135,8 +147,8 @@ open class Day17a(inputFileName: String) : Day(inputFileName) {
         companion object {
             private val allDirectionsFromUp = setOf(Right, Left, Up)
             private val allDirectionsFromRight = setOf(Right, Down, Up)
-            private val allDirectionsFromDown = setOf(Right, Down, Left)
 
+            private val allDirectionsFromDown = setOf(Right, Down, Left)
             private val allDirectionsFromLeft = setOf(Down, Left, Up)
             private val turnDirectionsFromUp = setOf(Right, Left)
             private val turnDirectionsFromRight = setOf(Down, Up)
@@ -144,58 +156,29 @@ open class Day17a(inputFileName: String) : Day(inputFileName) {
             private val turnDirectionsFromLeft = setOf(Down, Up)
         }
     }
-
-    fun getMinimalHeatLossBoard(board: Array<IntArray>): Array<Array<MutableMap<Pair<Direction?, Int>, Int>>> =
-        Array(board.size) {
-            Array(board.first().size) {
-                mutableMapOf<Pair<Direction?, Int>, Int>()
-            }
-        }
 }
 
 class Day17b(inputFileName: String) : Day17a(inputFileName) {
-    override fun validDirections(comingFrom: Direction?, walkingStraightFor: Int): Collection<Direction> = when {
+    override fun solve(): Int {
+        val finishedPaths = generateMinimalHeatLossBoard(::validDirectionsForPartB)
+
+//        finishedPaths
+//            .filter { it.walkingStraightForNTiles >= 4 }
+//            .minBy { it.heatloss }.printPath(input.toIntBoard())
+
+        return finishedPaths
+            .filter { it.walkingStraightForNTiles >= 4 }
+            .minOf { it.heatloss }
+    }
+
+    private fun validDirectionsForPartB(comingFrom: Direction?, walkingStraightFor: Int): Collection<Direction> = when {
         comingFrom == null -> Direction.entries
         walkingStraightFor >= 10 -> comingFrom.turnDirections()
         walkingStraightFor < 4 -> listOf(comingFrom)
         else -> comingFrom.allDirections()
     }
 
-    override fun solve(): Int {
-        val board = input.lines().map { it.map { c -> c.toString().toInt() }.toIntArray() }.toTypedArray()
-        val minimalHeatloss = getMinimalHeatLossBoard(board)
-
-        val lastPos = Pos(board[0].lastIndex, board.lastIndex)
-        val finishedPaths = mutableListOf<Step>()
-        val steps = LinkedList<Step>()
-        steps.add(Step(Pos(0, 0), null, 0, 0, null))
-        while (steps.isNotEmpty()) {
-            val step = steps.removeFirst()
-            if (step.pos == lastPos) finishedPaths.add(step)
-            val key = step.walking to step.walkingStraightFor
-            if (minimalHeatloss[step.pos.y][step.pos.x][key] != null
-                && minimalHeatloss[step.pos.y][step.pos.x][key]!! < step.heatloss
-            ) continue
-
-            step.nextSteps(board, ::validDirections)
-                .filter { (pos, comingFrom, walkingStraightFor, heatloss) ->
-                    val (x, y) = pos
-                    val _key = comingFrom to walkingStraightFor
-                    minimalHeatloss[y][x][_key] == null || minimalHeatloss[y][x][_key]!! > heatloss
-                }
-                .onEach { (pos, comingFrom, walkingStraightFor, heatloss) ->
-                    val (x, y) = pos
-                    minimalHeatloss[y][x][comingFrom to walkingStraightFor] = heatloss
-                }
-                .let { nextSteps -> steps.addAll(nextSteps) }
-        }
-
-        finishedPaths
-            .filter { it.walkingStraightFor >= 4 }
-            .minBy { it.heatloss }.printPath(board)
-
-        return finishedPaths
-            .filter { it.walkingStraightFor >= 4 }
-            .minOf { it.heatloss }
-    }
+    override fun stepFilter(step: Step, heatlossBoard: Board<MutableMap<Pair<Direction?, Int>, Int>>): Boolean =
+        heatlossBoard[step.pos.y][step.pos.x][step.walkingInDirectionFor] == null ||
+        heatlossBoard[step.pos.y][step.pos.x][step.walkingInDirectionFor]!! > step.heatloss
 }

@@ -24,6 +24,11 @@ fun List<Long>.findLCM(): Long {
     return result
 }
 
+typealias Board<T> = Array<Array<T>>
+typealias IntBoard = Array<IntArray>
+
+fun String.toIntBoard(): IntBoard = lines().map { it.map { c -> c.toString().toInt() }.toIntArray() }.toTypedArray()
+
 fun Array<CharArray>.transpose(): Array<CharArray> = this.first()
     .mapIndexed { x, _ -> this.map { it[x] }.toCharArray() }.toTypedArray()
 
