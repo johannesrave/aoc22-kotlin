@@ -36,16 +36,10 @@ open class Day17a(inputFileName: String) : Day(inputFileName) {
                 finishedPaths.add(step)
                 continue
             }
-            val (pos, _, _, heatloss, _, dirToStraightSteps) = step
-            val recordedHeatloss = heatlossBoard[pos.y][pos.x][dirToStraightSteps]
-
-            if (recordedHeatloss != null && recordedHeatloss < heatloss) continue
+            if (step.heatlossIsGreaterThanRecordedPreviously(heatlossBoard)) continue
 
             step.getNextSteps(board, validDirections)
-                .filter { (pos, _, _, heatloss, _, dirToStraightSteps) ->
-                    val recordedHeatloss = heatlossBoard[pos.y][pos.x][dirToStraightSteps]
-                        (recordedHeatloss == null || recordedHeatloss > heatloss)
-                }
+                .filter { nextStep -> nextStep.heatlossIsLessThanRecordedPreviously(heatlossBoard) }
                 .onEach { nextStep -> recordMinimalHeatlossOnBoard(nextStep, heatlossBoard) }
                 .also { stepsQueue.addAll(it) }
         }
@@ -84,17 +78,27 @@ open class Day17a(inputFileName: String) : Day(inputFileName) {
             validDirections: (Direction?, Int) -> Collection<Direction>,
         ): Collection<Step> =
             validDirections(dir, straightSteps).filter { dir -> hasNeighbourInDirection(dir, board) }.map { dir ->
-                    val newPos = pos + dir
-                    val newWalkingStraightFor = if (dir == this.dir) straightSteps + 1 else 1
-                    val additionalHeatloss = board[pos.y + dir.y][pos.x + dir.x]
-                    val newHeatloss = heatloss + additionalHeatloss
+                val newPos = pos + dir
+                val newWalkingStraightFor = if (dir == this.dir) straightSteps + 1 else 1
+                val additionalHeatloss = board[pos.y + dir.y][pos.x + dir.x]
+                val newHeatloss = heatloss + additionalHeatloss
 
-                    Step(newPos, dir, newWalkingStraightFor, newHeatloss, this)
-                }
+                Step(newPos, dir, newWalkingStraightFor, newHeatloss, this)
+            }
 
         private fun hasNeighbourInDirection(dir: Direction, board: Array<IntArray>): Boolean {
             val (x, y) = (pos.x + dir.x) to (pos.y + dir.y)
             return board.getOrNull(y)?.getOrNull(x) != null
+        }
+
+        fun heatlossIsLessThanRecordedPreviously(heatlossBoard: Board<MutableMap<Pair<Direction?, Int>, Int>>): Boolean {
+            val recordedHeatloss = heatlossBoard[pos.y][pos.x][dirToStraightSteps]
+            return recordedHeatloss == null || recordedHeatloss > heatloss
+        }
+
+        fun heatlossIsGreaterThanRecordedPreviously(heatlossBoard: Board<MutableMap<Pair<Direction?, Int>, Int>>): Boolean {
+            val recordedHeatloss = heatlossBoard[pos.y][pos.x][dirToStraightSteps]
+            return recordedHeatloss != null && recordedHeatloss < heatloss
         }
 
         fun printPath(board: Array<IntArray>): String {
